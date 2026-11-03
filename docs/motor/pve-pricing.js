@@ -3,7 +3,7 @@
 'use strict';
 const B=root.PokeIdleMarketBonuses;
 const STATS=['hp','atk','def','spAtk','spDef','speed'];
-const LEVEL_BAND=.5,MIN_MARKET=30,ITEM_DAYS=3,DAY_MS=86400000,SAO_PAULO_MS=-3*3600000;
+const LEVEL_BAND=.5,MIN_MARKET=30,ITEM_DAYS=3,DAY_MS=86400000,SAO_PAULO_MS=-3*3600000,LATE_READ_MS=2*3600000;
 const MEGA=70014,MEGA_SHINY=70015,PER_ADDON=10;
 const day=at=>new Date(at+SAO_PAULO_MS).toISOString().slice(0,10);
 const yes=v=>v===true||v===1||v==='true';
@@ -39,7 +39,8 @@ function prepare(central,sales,itemPrices){
   let addons=0;for(const a of d.addons){const q=quote(a.id,s.at);if(q==null){addons=null;break;}addons+=q*a.quantity;}
   if(addons==null){skip('sem cotação dos Adicionais');continue;}
   const base=s.price-addons;if(!(base>0)){skip('Adicionais acima do preço');continue;}
-  rows.push({at:s.at,price:s.price,base,logBase:Math.log(base),addons,hasAddons:d.addons.length>0,mega:d.addons.some(a=>a.id===MEGA||a.id===MEGA_SHINY),pve:d.pve,family:d.family,familyName:d.familyName,shiny:d.shiny,level:d.level,speciesId,name:s.name});
+  const uncertain=(!!s.ficha?.tmElemental||yes(s.ficha?.tmAoe))&&!(s.readAt>=s.at&&s.readAt-s.at<=LATE_READ_MS);
+  rows.push({at:s.at,price:s.price,base,logBase:Math.log(base),addons,hasAddons:d.addons.length>0,mega:d.addons.some(a=>a.id===MEGA||a.id===MEGA_SHINY),pve:d.pve,family:d.family,familyName:d.familyName,shiny:d.shiny,level:d.level,speciesId,name:s.name,uncertain});
  }
  return {rows,skipped};
 }
@@ -71,7 +72,8 @@ function estimate(target,rows,{k=5,variant='factor',addons=0}={}){
  const lo=quantile(spread,.25)-quantile(spread,.5),hi=quantile(spread,.75)-quantile(spread,.5);
  const price=x=>Math.max(1,Math.round(Math.exp(x)+addons));
  return {low:price(center+lo),median:price(center),high:price(center+hi),base:Math.exp(center),addons,weight,familyCount:n,marketCount:market.length,familyName:target.familyName,
-  sources:{family:family.length,market:market.length,levelNear:near.length>=MIN_MARKET}};
+  sources:{family:family.length,market:market.length,levelNear:near.length>=MIN_MARKET},
+  uncertain:{family:family.filter(r=>r.uncertain).length,market:market.filter(r=>r.uncertain).length}};
 }
 const MODEL={k:5,variant:'curve'};
 function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.now()}){
@@ -86,8 +88,8 @@ function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.n
  const species=central.species.get(speciesId);
  const result={name:species.n,speciesId,types:species.t||[],family:target.familyName,familyId:target.family,shiny:target.shiny,pve:target.pve,level:target.level,refined,parts,missing:parts.filter(p=>p.total==null).map(p=>p.label)};
  if(!e)return {...result,available:false};
- const comps=rows.filter(r=>r.family===target.family&&r.shiny===target.shiny).sort((a,b)=>b.at-a.at).slice(0,8).map(r=>({at:r.at,price:r.price,base:Math.round(r.base),level:r.level,speciesId:r.speciesId,name:r.name,shiny:r.shiny,types:central.species.get(r.speciesId)?.t||[]}));
- return {...result,available:true,low:e.low,median:e.median,high:e.high,base:Math.round(e.base),weight:e.weight,familyCount:e.familyCount,marketCount:e.marketCount,comps};
+ const comps=rows.filter(r=>r.family===target.family&&r.shiny===target.shiny).sort((a,b)=>b.at-a.at).slice(0,8).map(r=>({at:r.at,price:r.price,base:Math.round(r.base),level:r.level,speciesId:r.speciesId,name:r.name,shiny:r.shiny,uncertain:r.uncertain===true,types:central.species.get(r.speciesId)?.t||[]}));
+ return {...result,available:true,low:e.low,median:e.median,high:e.high,base:Math.round(e.base),weight:e.weight,familyCount:e.familyCount,marketCount:e.marketCount,uncertain:e.uncertain,comps};
 }
 root.PokeIdlePvePricing={describe,prepare,estimate,priceSheet,pav,at,itemQuotes,day,MEGA,MEGA_SHINY,MODEL};
 })(window);

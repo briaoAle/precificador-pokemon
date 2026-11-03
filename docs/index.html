@@ -20,17 +20,17 @@
   <ol class="steps muted">
    <li>No jogo, abra a ficha do Pokémon e clique em <b>Copiar p/ ChatGPT</b>.</li>
    <li>Cole o texto abaixo.</li>
-   <li>Marque os Adicionais que ele tem: eles não vêm no texto.</li>
+   <li>Marque o Z-Move e o AoE, se ele tiver: eles não vêm no texto.</li>
   </ol>
   <label for="ficha">Texto da ficha</label>
   <textarea id="ficha" rows="10" spellcheck="false" autocomplete="off" placeholder="Cole aqui o texto do botão Copiar p/ ChatGPT"></textarea>
   <fieldset>
    <legend>Adicionais</legend>
-   <label for="zmove">Z-Move</label>
-   <select id="zmove"><option value="">Nenhum</option></select>
+   <label class="check"><input type="checkbox" id="zmove"> Z-Move</label>
    <label class="check"><input type="checkbox" id="aoe"> AoE</label>
-   <label class="check"><input type="checkbox" id="mega"> Mega <span class="muted">(Mega Shiny se o Pokémon for shiny)</span></label>
-   <p class="hint muted">Ficha de uma forma Mega já é precificada como Mega, sem marcar.</p>
+   <p class="hint muted">Mega e Mega Shiny vêm da própria ficha (a espécie "Mega …"): não precisa marcar.</p>
+   <p class="hint muted">Cada Adicional conta 10 unidades do item (fragmentos de Z-Move ou AoE, pedras Mega) ao preço do dia: a mediana das leituras do menor preço anunciado no mercado naquele dia.</p>
+   <p id="reset" class="hint warn" role="status" hidden>Outro Pokémon colado: Z-Move e AoE foram desmarcados. Marque os que este tem.</p>
   </fieldset>
   <button type="submit" id="go" disabled>Precificar</button>
   <p id="status" class="muted small" role="status">Carregando vendas…</p>
