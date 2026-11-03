@@ -1,0 +1,36 @@
+# O repositório público tem só o site (docs/), o README e a licença.
+# Ferramentas locais: exportação dos preços, testes e bot do Discord
+tools/
+lib/
+tests/
+precificar.cjs
+testar.cjs
+iniciar.cmd
+config.example.json
+agent-prompt.md
+
+# Token do bot do Discord
+config.json
+.env
+.env.*
+
+# Bancos e qualquer cópia de dados (só docs/precos.json vai para o repositório)
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.db
+*.db-*
+data/
+
+# Saídas locais de teste e capturas de tela
+*.log
+*.png
+saida*.txt
+
+# Sistema e editor
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.claude/
+node_modules/

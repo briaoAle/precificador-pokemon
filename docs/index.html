@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https://raw.githubusercontent.com; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Estimativa do preço de venda de um Pokémon do PokeIdle em Gemas, a partir das vendas recentes do mercado.">
+<title>Precificador de Pokémon</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+ <h1>Precificador de Pokémon</h1>
+ <p class="muted">Quanto pedir em Gemas por um Pokémon do PokeIdle, a partir das vendas recentes do mercado.</p>
+</header>
+<main class="layout">
+ <form id="form" class="card" novalidate>
+  <h2>Ficha</h2>
+  <ol class="steps muted">
+   <li>No jogo, abra a ficha do Pokémon e clique em <b>Copiar p/ ChatGPT</b>.</li>
+   <li>Cole o texto abaixo.</li>
+   <li>Marque os Adicionais que ele tem: eles não vêm no texto.</li>
+  </ol>
+  <label for="ficha">Texto da ficha</label>
+  <textarea id="ficha" rows="10" spellcheck="false" autocomplete="off" placeholder="Cole aqui o texto do botão Copiar p/ ChatGPT"></textarea>
+  <fieldset>
+   <legend>Adicionais</legend>
+   <label for="zmove">Z-Move</label>
+   <select id="zmove"><option value="">Nenhum</option></select>
+   <label class="check"><input type="checkbox" id="aoe"> AoE</label>
+   <label class="check"><input type="checkbox" id="mega"> Mega <span class="muted">(Mega Shiny se o Pokémon for shiny)</span></label>
+   <p class="hint muted">Ficha de uma forma Mega já é precificada como Mega, sem marcar.</p>
+  </fieldset>
+  <button type="submit" id="go" disabled>Precificar</button>
+  <p id="status" class="muted small" role="status">Carregando vendas…</p>
+ </form>
+ <section id="result" class="card" aria-live="polite">
+  <h2>Preço</h2>
+  <p class="muted">O resultado aparece aqui.</p>
+ </section>
+</main>
+<footer class="foot muted small">
+ <p>Projeto independente, sem relação com os criadores do PokeIdle. Os preços são estimativas feitas a partir de vendas públicas do mercado do jogo e não garantem nada.</p>
+ <p>O texto que você cola é lido só no seu navegador: nada é enviado a nenhum servidor, e a página não acessa o jogo nem a sua conta. Sprites da <a href="https://github.com/PokeAPI/sprites" rel="noreferrer">PokeAPI</a>.</p>
+</footer>
+<script src="catalogo/especies.js" defer></script>
+<script src="catalogo/pve-power.js" defer></script>
+<script src="motor/market-bonuses.js" defer></script>
+<script src="motor/pve-pricing.js" defer></script>
+<script src="js/central.js" defer></script>
+<script src="js/ficha.js" defer></script>
+<script src="js/app.js" defer></script>
+</body>
+</html>
