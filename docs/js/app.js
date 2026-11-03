@@ -30,8 +30,31 @@
  function show(...nodes){const box=$('result');box.replaceChildren(el('h2',null,'Preço'),...nodes);if(box.getBoundingClientRect().top>innerHeight*.6)box.scrollIntoView({block:'start'});}
  function error(text){show(el('p','error',text));}
 
- // Teste contra vendas passadas (precos.json → teste) em dois gráficos: onde o preço pago caiu em relação à faixa e
- // quanto ele costuma se afastar do Preço justo, já em Gemas para o Pokémon precificado.
+ // Histograma das vendas reais da família deste Pokémon (mesmo shiny, nível parecido como no cálculo, 30 dias) pelo
+ // valor do Pokémon sem os Adicionais, em faixas de preço em escala log. Barras verdes = dentro de Vender rápido–Esperar.
+ // Nada projetado: só o que vendeu.
+ const BINS=16,near=(a,b)=>Math.abs(Math.log2(a/b))<=.5;
+ function familyChart(r){
+  const all=rows.filter(x=>x.family===r.familyId&&x.shiny===r.shiny),close=all.filter(x=>near(x.level,r.level)),sales=close.length>=3?close:all;
+  const who=`${r.family}${r.shiny?' shiny':''}`;
+  if(sales.length<3)return [el('p','small muted',`Poucas vendas de ${who} nos últimos 30 dias para mostrar num gráfico.`)];
+  const addons=r.median-r.base,lo=Math.max(1,r.low-addons),hi=Math.max(lo,r.high-addons),values=sales.map(x=>x.base);
+  const min=Math.min(...values,lo),max=Math.max(...values,hi),step=(Math.log(max)-Math.log(min))/BINS||1,edge=i=>Math.exp(Math.log(min)+i*step);
+  const counts=Array(BINS).fill(0);for(const v of values)counts[Math.min(BINS-1,Math.floor((Math.log(v)-Math.log(min))/step))]++;
+  const top=Math.max(...counts),inside=values.filter(v=>v>=lo&&v<=hi).length,chart=el('div','hist'),bars=el('div','bars');
+  counts.forEach((n,i)=>{const a=edge(i),b=edge(i+1),mid=Math.sqrt(a*b),bar=el('div','bar '+(mid>=lo&&mid<=hi?'in':'out'));
+   bar.style.height=(n?Math.max(4,n/top*100):0)+'%';bar.title=`${n} ${n===1?'venda':'vendas'} entre ${gems(a)} e ${gems(b)} Gemas`;bars.append(bar);});
+  const fair=el('div','fairline'),at=Math.min(100,Math.max(0,(Math.log(r.base)-Math.log(min))/(Math.log(max)-Math.log(min)||1)*100));
+  fair.style.left=at+'%';fair.title=`Preço justo: ${gems(r.base)} Gemas (sem Adicionais)`;bars.append(fair);
+  const ends=el('div','ends');ends.append(el('span',null,gems(min)),el('span',null,gems(max)));
+  const label=el('span','fairlabel',`Preço justo ${gems(r.base)}`);label.style.left=Math.min(78,Math.max(22,at))+'%';ends.append(label);
+  chart.setAttribute('role','img');chart.setAttribute('aria-label',`${sales.length} vendas de ${who}, de ${gems(min)} a ${gems(max)} Gemas; ${inside} entre Vender rápido e Esperar`);
+  chart.append(bars,ends);
+  const levels=sales===close?`de nível parecido (Nv ${gems(Math.ceil(r.level/Math.SQRT2))} a ${gems(Math.floor(r.level*Math.SQRT2))})`:'de todos os níveis';
+  return [el('h5',null,`Vendas de ${who} nos últimos 30 dias`),chart,
+   el('p','small',`Das ${sales.length} vendas ${levels}, ${inside} saíram entre Vender rápido e Esperar (barras verdes). Valores do Pokémon sem os Adicionais.`)];
+ }
+ // Teste contra vendas passadas (precos.json → teste): onde o preço pago caiu em relação à faixa, em todas as espécies.
  function confidence(t,r){
   const details=el('details');details.open=true;details.append(el('summary',null,'Quão confiável é este preço?'));
   details.append(el('p',null,'É uma estimativa. O mercado é feito por jogadores, e Pokémon parecidos às vezes são vendidos por preços bem diferentes.'));
@@ -43,17 +66,11 @@
   const legend=el('ul','legend');
   for(const [cls,x,label]of bands){const seg=el('div','seg '+cls);seg.style.flexGrow=String(x);seg.title=`${pct(x)}% das vendas ${label}`;stack.append(seg);
    const li=el('li');li.append(el('i','swatch '+cls),el('b',null,pct(x)+'%'),' '+label);legend.append(li);}
-  details.append(el('h5',null,'Onde o preço pago caiu'),stack,legend);
-  // Metade das vendas ficou a até "erroMediano" vezes do Preço justo: a faixa em escala de razão, com o justo no meio.
-  const lo=r.median/t.erroMediano,hi=r.median*t.erroMediano,range=el('div','range');range.setAttribute('role','img');
-  range.setAttribute('aria-label',`Metade das vendas saiu entre ${gems(lo)} e ${gems(hi)} Gemas; Preço justo ${gems(r.median)}`);
-  const track=el('div','track'),band=el('div','band'),dot=el('div','dot');band.title=`Metade das vendas: de ${gems(lo)} a ${gems(hi)} Gemas`;dot.title=`Preço justo: ${gems(r.median)} Gemas`;track.append(band,dot);
-  const marks=el('div','marks');marks.append(el('span','m25',gems(lo)),el('span','m50',gems(r.median)),el('span','m75',gems(hi)));range.append(track,marks);
-  details.append(el('h5',null,'Quanto o preço pago se afasta do Preço justo'),range,
-   el('p','small',`Metade das vendas saiu entre ${gems(lo)} e ${gems(hi)} Gemas: de 1/${times} até ${times} vezes o Preço justo. A outra metade saiu ainda mais longe.`));
+  details.append(el('h5',null,'Onde o preço pago caiu (teste com todas as espécies)'),stack,legend,...familyChart(r));
   const list=el('ul');
-  list.append(el('li',null,t.ate25>0?`Só 1 em cada ${Math.round(1/t.ate25)} vendas saiu perto do Preço justo (até 25% de diferença).`:'Nenhuma venda saiu perto do Preço justo (até 25% de diferença).'));
-  list.append(el('li',null,t.vies>=0?`Em geral as vendas saíram por menos: o Preço justo ficou ${pct(t.vies)}% acima do valor pago.`:`Em geral as vendas saíram por mais: o Preço justo ficou ${pct(-t.vies)}% abaixo do valor pago.`));
+  list.append(el('li',null,`No teste, em metade das vendas o preço pago ficou a até ${times} vezes do Preço justo, para mais ou para menos.`));
+  list.append(el('li',null,t.ate25>0?`No teste, só 1 em cada ${Math.round(1/t.ate25)} vendas saiu perto do Preço justo (até 25% de diferença).`:'No teste, nenhuma venda saiu perto do Preço justo (até 25% de diferença).'));
+  list.append(el('li',null,t.vies>=0?`No teste, as vendas em geral saíram por menos: o Preço justo ficou ${pct(t.vies)}% acima do valor pago.`:`No teste, as vendas em geral saíram por mais: o Preço justo ficou ${pct(-t.vies)}% abaixo do valor pago.`));
   details.append(list,el('p',null,'Use a faixa como referência e compare com as vendas recentes listadas abaixo.'));
   return details;
  }
@@ -72,7 +89,7 @@
    body.replaceChildren(...list.map(c=>{
     const tr=el('tr'),who=el('td'),mon=el('div','mon'),name=el('div');
     name.append(el('div',null,`${c.name}${c.shiny?' shiny':''}`),types(c.types));
-    if(c.uncertain){const tag=el('div','tag warn','Adicional incerto');tag.title='O AoE ou Z-Move desta venda pode ter sido aplicado depois dela';name.append(tag);}
+    if(c.uncertain){const tag=el('div','tag warn','Adicional incerto');tag.title='O AoE ou Z-Move desta venda pode ter sido aplicado depois dela, ou o preço do Adicional é de outro dia';name.append(tag);}
     mon.append(sprite(c.speciesId,c.shiny,true),name);who.append(mon);
     tr.append(who,el('td',null,gems(c.level)),el('td',null,when(c.at)),el('td',null,gems(c.price)));return tr;}));
   }
@@ -93,10 +110,11 @@
    nodes.push(el('p','muted small','Preços em Gemas.'),prices,parts);
    if(r.parts.length)nodes.push(el('p','note small muted','Adicionais: 10 unidades do item pelo preço mais recente, que é a mediana das leituras do menor preço anunciado no mercado naquele dia. Nas vendas usadas na comparação, os Adicionais foram descontados pelo preço do item no dia de cada venda.'));
    nodes.push(el('p','note small',family?`${family}% vendas de ${r.family} (${r.familyCount}) · ${100-family}% mercado (${r.marketCount})`:`Mercado: ${r.marketCount} vendas${r.familyCount?'':` · nenhuma venda de ${r.family}`}`));
-   // O histórico do jogo mostra o AoE e o Z-Move que o Pokémon tem hoje, mesmo aplicados depois da venda.
+   // O histórico do jogo mostra o AoE e o Z-Move que o Pokémon tem hoje, mesmo aplicados depois da venda; e alguns dias
+   // antigos só têm o preço dos Adicionais de alguns dias depois.
    const u=r.uncertain||{};
-   if(u.family>0)nodes.push(el('p','note small warn',`${u.family} de ${r.familyCount} vendas de ${r.family} têm AoE ou Z-Move que pode ter sido aplicado depois da venda: preço menos confiável.`));
-   else if(u.market>0&&u.market>=.05*r.marketCount)nodes.push(el('p','note small warn',`${Math.round(u.market/r.marketCount*100)}% das vendas do mercado têm AoE ou Z-Move que pode ter sido aplicado depois da venda.`));
+   if(u.family>0)nodes.push(el('p','note small warn',`${u.family} de ${r.familyCount} vendas de ${r.family} têm Adicional incerto (AoE ou Z-Move talvez aplicado depois da venda, ou preço do Adicional de outro dia): preço menos confiável.`));
+   else if(u.market>0&&u.market>=.05*r.marketCount)nodes.push(el('p','note small warn',`${Math.round(u.market/r.marketCount*100)}% das vendas do mercado têm Adicional incerto (AoE ou Z-Move talvez aplicado depois da venda, ou preço do Adicional de outro dia).`));
   }
   if(r.missing?.length)nodes.push(el('p','note small warn',`Sem cotação de ${r.missing.join(', ')}: fora do total.`));
   if(r.refined)nodes.push(el('p','note small','O refino não entra no preço.'));

@@ -3,7 +3,7 @@
 'use strict';
 const B=root.PokeIdleMarketBonuses;
 const STATS=['hp','atk','def','spAtk','spDef','speed'];
-const LEVEL_BAND=.5,MIN_MARKET=30,ITEM_DAYS=3,DAY_MS=86400000,SAO_PAULO_MS=-3*3600000,LATE_READ_MS=2*3600000;
+const LEVEL_BAND=.5,MIN_MARKET=30,ITEM_DAYS=3,FAR_ITEM_DAYS=5,DAY_MS=86400000,SAO_PAULO_MS=-3*3600000,LATE_READ_MS=2*3600000;
 const MEGA=70014,MEGA_SHINY=70015,PER_ADDON=10;
 const day=at=>new Date(at+SAO_PAULO_MS).toISOString().slice(0,10);
 const yes=v=>v===true||v===1||v==='true';
@@ -11,7 +11,8 @@ const norm=s=>String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase(
 function itemQuotes(itemPrices){
  const by=new Map();
  for(const r of itemPrices||[])if(r.currency==='orb'&&r.price>0){if(!by.has(r.itemId))by.set(r.itemId,[]);by.get(r.itemId).push({t:Date.parse(r.day+'T12:00:00-03:00'),price:r.price});}
- return (itemId,at)=>{let best=null;for(const q of by.get(itemId)||[]){const d=Math.abs(q.t-at);if(d<=ITEM_DAYS*DAY_MS&&(!best||d<best.d))best={d,price:q.price};}return best?.price??null;};
+ const near=(itemId,at,maxDays)=>{let best=null;for(const q of by.get(itemId)||[]){const d=Math.abs(q.t-at);if(d<=maxDays*DAY_MS&&(!best||d<best.d))best={d,price:q.price};}return best&&{price:best.price,far:best.d>ITEM_DAYS*DAY_MS};};
+ const quote=(itemId,at)=>near(itemId,at,ITEM_DAYS)?.price??null;quote.near=near;return quote;
 }
 function speciesLookup(central){const byName=new Map();for(const e of central.species.values())if(!byName.has(norm(e.n)))byName.set(norm(e.n),e.id);return (id,name)=>central.species.has(Number(id))?Number(id):byName.get(norm(name))??null;}
 const megaBase=(central,e)=>e?.megaBase??(e&&e.id>=3000&&e.id<4000&&/^Mega /i.test(e.n)?e.id-3000:null);
@@ -36,10 +37,10 @@ function prepare(central,sales,itemPrices){
   const speciesId=find(s.speciesId??s.ficha?.speciesId,s.name);if(speciesId==null){skip('espécie desconhecida');continue;}
   if(STATS.some(k=>Number(s.ficha?.refino?.[k])>0)){skip('refinado');continue;}
   const d=describe(central,{...s.ficha,speciesId});if(!d){skip('ficha incompleta');continue;}
-  let addons=0;for(const a of d.addons){const q=quote(a.id,s.at);if(q==null){addons=null;break;}addons+=q*a.quantity;}
+  let addons=0,far=false;for(const a of d.addons){const q=quote.near(a.id,s.at,FAR_ITEM_DAYS);if(!q){addons=null;break;}addons+=q.price*a.quantity;far||=q.far;}
   if(addons==null){skip('sem cotação dos Adicionais');continue;}
   const base=s.price-addons;if(!(base>0)){skip('Adicionais acima do preço');continue;}
-  const uncertain=(!!s.ficha?.tmElemental||yes(s.ficha?.tmAoe))&&!(s.readAt>=s.at&&s.readAt-s.at<=LATE_READ_MS);
+  const uncertain=far||(!!s.ficha?.tmElemental||yes(s.ficha?.tmAoe))&&!(s.readAt>=s.at&&s.readAt-s.at<=LATE_READ_MS);
   rows.push({at:s.at,price:s.price,base,logBase:Math.log(base),addons,hasAddons:d.addons.length>0,mega:d.addons.some(a=>a.id===MEGA||a.id===MEGA_SHINY),pve:d.pve,family:d.family,familyName:d.familyName,shiny:d.shiny,level:d.level,speciesId,name:s.name,uncertain});
  }
  return {rows,skipped};
