@@ -1,4 +1,4 @@
-// Texto do botão "Copiar p/ ChatGPT" da ficha → {nome, level, potencia, quality, shiny, ivs, refinoActual}.
+// Texto do botão "Copiar p/ ChatGPT" da ficha → {nome, level, potencia, quality, nota, shiny, ivs, refinoActual}.
 // Formato visto em 03/11/2026: Markdown com "- Espécie: Tyranitar (#248) — ROCK / DARK", números com vírgula de
 // milhar ("Nível: 1,044") e ponto decimal ("Qualidade: 1.8"), "Potência: P1" e os IVs numa tabela
 // "| Stat | Base da espécie | IV (1–32) | ... |". Os Adicionais não vêm no texto: chegam pelos controles da página.
@@ -28,7 +28,8 @@
    const refino=cols.refino>=0?integer(row[cols.refino]):integer(String(row[cols.base]??'').match(/\+\s*([\d.,]+)/)?.[1]);
    if(refino>0)refinoActual[key]=refino;
   }
-  return {nome,level:integer(field('n[íi]vel')),potencia,quality:decimal(field('qualidade')),shiny,ivs,refinoActual};
+  // "Nota da Calculadora: 3.575 de 10 (Razoável)": só para o gráfico de vendas (o preço não usa a nota).
+  return {nome,level:integer(field('n[íi]vel')),potencia,quality:decimal(field('qualidade')),nota:decimal(field('nota(?: da calculadora)?')),shiny,ivs,refinoActual};
  }
  const api={parse};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.PokeIdleFicha=api;

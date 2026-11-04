@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Estimativa do preço de venda de um Pokémon do PokeIdle em Gemas, a partir das vendas recentes do mercado.">
 <title>Precificador de Pokémon</title>
-<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="app.css?v=5ba2b3a8">
 </head>
 <body>
 <header class="top">
@@ -28,8 +28,6 @@
    <legend>Adicionais</legend>
    <label class="check"><input type="checkbox" id="zmove"> Z-Move</label>
    <label class="check"><input type="checkbox" id="aoe"> AoE</label>
-   <p class="hint muted">Mega e Mega Shiny vêm da própria ficha (a espécie "Mega …"): não precisa marcar.</p>
-   <p class="hint muted">Cada Adicional conta 10 unidades do item (fragmentos de Z-Move ou AoE, pedras Mega) ao preço do dia: a mediana das leituras do menor preço anunciado no mercado naquele dia.</p>
    <p id="reset" class="hint warn" role="status" hidden>Outro Pokémon colado: Z-Move e AoE foram desmarcados. Marque os que este tem.</p>
   </fieldset>
   <button type="submit" id="go" disabled>Precificar</button>
@@ -44,12 +42,13 @@
  <p>Projeto independente, sem relação com os criadores do PokeIdle. Os preços são estimativas feitas a partir de vendas públicas do mercado do jogo e não garantem nada.</p>
  <p>O texto que você cola é lido só no seu navegador: nada é enviado a nenhum servidor, e a página não acessa o jogo nem a sua conta. Sprites da <a href="https://github.com/PokeAPI/sprites" rel="noreferrer">PokeAPI</a>.</p>
 </footer>
-<script src="catalogo/especies.js" defer></script>
-<script src="catalogo/pve-power.js" defer></script>
-<script src="motor/market-bonuses.js" defer></script>
-<script src="motor/pve-pricing.js" defer></script>
-<script src="js/central.js" defer></script>
-<script src="js/ficha.js" defer></script>
-<script src="js/app.js" defer></script>
+<script src="catalogo/especies.js?v=f74579f7" defer></script>
+<script src="catalogo/pve-power.js?v=91e6c4a9" defer></script>
+<script src="motor/market-bonuses.js?v=2b8fb2c3" defer></script>
+<script src="motor/pve-pricing.js?v=d1165ee6" defer></script>
+<script src="js/central.js?v=db32209b" defer></script>
+<script src="js/ficha.js?v=586bdee9" defer></script>
+<script src="js/nota.js?v=f0647af1" defer></script>
+<script src="js/app.js?v=0611f056" defer></script>
 </body>
 </html>
