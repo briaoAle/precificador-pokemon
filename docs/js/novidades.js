@@ -3,6 +3,10 @@
 (function(){
  'use strict';
  const NOVIDADES=[
+  {data:'04/11/2026, 12h14',itens:[
+   'Os motivos da confiança não dizem mais "menos de 1 venda": quando não há venda parecida, o texto diz isso, e com uma venda só diz "equivale a uma venda só".',
+   'Textos de confiança e de preço revistos para família sem vendas ou com 1 venda, comparação com uma venda só, preço de 1 Gema e mais de um Adicional sem cotação.',
+   'Quando o nível e a Nota não explicam a diferença de preço, "Como chegamos ao preço" diz que ela vem do Poder e das outras vendas da comparação.']},
   {data:'04/11/2026, 11h46',itens:[
    'Novo layout: a ficha e o preço lado a lado, e embaixo os dois gráficos lado a lado, a tabela de vendas e, por último, a auditoria.',
    'Embaixo da confiança, "Por que a confiança é baixa" lista cada motivo numa linha, e "Como chegamos ao preço" compara este Pokémon com as vendas mais parecidas.',

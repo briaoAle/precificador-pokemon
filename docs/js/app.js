@@ -242,16 +242,33 @@
   const parts=r.confidenceParts||{},W=precos.confianca?.pesos||P.CONFIDENCE.weights,fam=r.family;
   const loss=P.CONFIDENCE.keys.map((k,i)=>({k,v:W[i+1]*(1-(parts[k]??1))})).sort((a,b)=>b.v-a.v),top=loss[0].v;
   // "Comparáveis" é por peso (Poder, Nota, nível e data), não por quantidade: a família pode ter muitas vendas e nenhuma
-  // comparável. O número equivalente sai da Proximidade (n ÷ (n + 5)); o total é o da família no mesmo shiny.
-  const p=parts.proximidade??0,n=p<1?5*p/(1-p):99,eq=n<1?'menos de 1 venda':Math.round(n)===1?'cerca de 1 venda':`cerca de ${Math.round(n)} vendas`;
-  const total=`${gems(r.familyCount||0)} ${r.familyCount===1?'venda':'vendas'} ${r.shiny?'shiny':'não shiny'}`;
-  const text={proximidade:`Poucas vendas comparáveis: só ${eq} de peso equivalente, entre ${fam} e espécies dos mesmos tipos.`,
-   ampliacao:(parts.ampliacao??1)<.1?`Quase nenhuma venda de ${fam} é comparável a este Pokémon (a família tem ${total}): o preço vem de espécies dos mesmos tipos.`:`Poucas vendas de ${fam} são comparáveis a este Pokémon (a família tem ${total}).`,
+  // comparável. O número equivalente (família + espécies dos mesmos tipos) sai da Proximidade (n ÷ (n + 5)); pela conta do
+  // motor (soma² ÷ soma dos quadrados) ele é 0 ou pelo menos 1, então o arredondamento da volta nunca pode dar "menos de 1".
+  return reasonTexts({keys:loss.filter(x=>x.v>0&&x.v>=top*.6).slice(0,3).map(x=>x.k),proximidade:parts.proximidade??0,
+   ampliacao:parts.ampliacao??1,family:fam,familyCount:r.familyCount||0,shiny:r.shiny});
+ }
+ // Só o texto, a partir das variáveis (testável sem precificar nada).
+ function reasonTexts({keys,proximidade:p,ampliacao:a,family:fam,familyCount:fc,shiny}){
+  const n=p<=0?0:p>=1?99:Math.max(1,Math.round(5*p/(1-p))),kind=shiny?'shiny':'não shiny';
+  const total=fc>0?`a família tem ${gems(fc)} ${fc===1?'venda':'vendas'} ${kind}`:`a família não tem vendas ${kind}`;
+  const eq=n===1?'equivale a uma venda só':n<10?`equivale a só cerca de ${n} vendas`:`equivale a cerca de ${n>=99?'100 ou mais':n} vendas`;
+  const famPart=fc===0?`nenhuma é de ${fam} (${total})`:a<.1?`quase nada vem de ${fam} (${total})`:`pouco vem de ${fam} (${total})`;
+  const text={
+   proximidade:n===0?`Nenhuma venda de ${fam} ou de espécies dos mesmos tipos é parecida com este Pokémon: o preço vem de espécies com outros tipos.`
+    :`${n<10?'Poucas vendas comparáveis: o':'O'} peso das vendas parecidas, de ${fam} e de espécies dos mesmos tipos, ${eq}.`,
+   ampliacao:fc===0?`Não há vendas ${kind} de ${fam}: o preço vem de outras espécies.`
+    :fc===1?(a<.1?`A única venda ${kind} de ${fam} é pouco parecida com este Pokémon: o preço vem de outras espécies.`
+     :`${fam} tem só 1 venda ${kind}: parte do preço vem de outras espécies.`)
+    :a<.1?`Quase nenhuma venda de ${fam} é parecida com este Pokémon (${total}): o preço vem de outras espécies.`
+    :`Poucas vendas de ${fam} são parecidas com este Pokémon (${total}): parte do preço vem de outras espécies.`,
    consistencia:'Os preços dessas vendas variam muito entre si.',
    certeza:'Muitas vendas têm Adicional incerto: o AoE ou o Z-Move pode ter sido aplicado depois da venda, o que distorce a comparação.'};
-  const keys=loss.filter(x=>x.v>0&&x.v>=top*.6).slice(0,3).map(x=>x.k);
+  keys=[...keys];
   // Família e vendas comparáveis juntas viram uma frase só (as duas falam de falta de vendas comparáveis).
-  if(keys.includes('ampliacao')&&keys.includes('proximidade')){text.proximidade=`Poucas vendas comparáveis: só ${eq} de peso equivalente, quase nenhuma de ${fam} (a família tem ${total}); o resto vem de espécies dos mesmos tipos.`;keys.splice(keys.indexOf('ampliacao'),1);}
+  if(keys.includes('ampliacao')&&keys.includes('proximidade')){
+   text.proximidade=n===0?`Nenhuma venda parecida com este Pokémon, nem de ${fam} (${total}) nem de espécies dos mesmos tipos: o preço vem de espécies com outros tipos.`
+    :`Poucas vendas comparáveis: o peso das vendas parecidas ${eq}, e ${famPart}; o resto vem de outras espécies.`;
+   keys.splice(keys.indexOf('ampliacao'),1);}
   return (keys.length?keys:['proximidade']).map(k=>text[k]);
  }
  // Confiança e preço (04/11/2026): "Por que a confiança é baixa" (lista) e "Como chegamos ao preço" (as vendas da família
@@ -273,10 +290,13 @@
    const causes=[...(side&&lvSide===side?[side>0?'nível mais alto':'nível mais baixo']:[]),...(side&&notaSide===side?[side>0?'Nota maior':'Nota menor']:[])];
    const fmt=(l,n)=>`Nv ${gems(l)}${hasNota?` e Nota ${METRICS.nota.fmt(n)}`:''}`;
    const caution=c&&c.percent>=20&&c.percent<40?' Como a confiança é baixa, use o valor como referência aproximada.':'';
+   const g=n=>`${gems(n)} ${Math.round(n)===1?'Gema':'Gemas'}`,one=comps.length===1;
+   // Sem causa citada e preço diferente da média: a diferença vem do Poder e das outras vendas da comparação.
+   const link=causes.length?`, ou seja, tem ${causes.join(' e ')}, então estimamos`:side?'; pelo Poder dele e pelas outras vendas da comparação, estimamos':'; estimamos';
    head('Como chegamos ao preço');
-   box.append(el('p',null,`As vendas de ${r.family} mais parecidas saíram, em média, por ${gems(paid)} Gemas (sem Adicionais), com ${fmt(lv,nota)}. Este Pokémon tem ${fmt(r.level,mine)}${causes.length?`, ou seja, tem ${causes.join(' e ')}, então estimamos`:'; estimamos'} ${gems(r.base)} Gemas.${caution}`));
+   box.append(el('p',null,`${one?`A venda de ${r.family} mais parecida saiu por`:`As vendas de ${r.family} mais parecidas saíram, em média, por`} ${g(paid)} (sem Adicionais), com ${fmt(lv,nota)}. Este Pokémon tem ${fmt(r.level,mine)}${link} ${g(r.base)}.${caution}`));
   }
-  if(r.missing?.length)box.append(el('p','warn',`Adicionais sem cotação: ${r.missing.join(', ')} ficou fora do total.`));
+  if(r.missing?.length){const m=r.missing,list=m.length>1?`${m.slice(0,-1).join(', ')} e ${m.at(-1)}`:m[0];box.append(el('p','warn',`${m.length>1?'Adicionais':'Adicional'} sem cotação: ${list} ${m.length>1?'ficaram':'ficou'} fora do total.`));}
   if(r.refined){head('Refino');box.append(el('p',null,'Não entra no preço: o Pokémon é comparado como se não tivesse refino.'));}
   return box;
  }
