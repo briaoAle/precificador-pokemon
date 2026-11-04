@@ -57,6 +57,7 @@ button:disabled{opacity:.6;cursor:default}
 .parts li b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .parts li.sub{color:var(--muted);padding-left:12px}
 .note{margin:6px 0}.warn{color:var(--bad)}
+ul.why{margin:8px 0;padding-left:18px;color:var(--muted)}ul.why li{margin:4px 0}ul.why b{color:var(--text);font-weight:600}ul.why li.warn,ul.why li.warn b{color:var(--bad)}
 .error{border:1px solid var(--bad);border-radius:8px;padding:10px 12px;color:var(--bad);background:var(--raised)}
 details{background:var(--raised);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:12px 0}
 summary{cursor:pointer;font-weight:600}
@@ -88,6 +89,7 @@ th button{background:none;border:0;padding:0;color:var(--muted);font-weight:600;
 th[aria-sort] button{color:var(--text)}
 .mon{display:flex;gap:8px;align-items:center;min-width:0}
 .foot{padding-top:24px;padding-bottom:32px}
+.levels .line{fill:none;stroke:var(--ok);stroke-width:2}.levels .pt{fill:var(--ok)}
 .scatter .axisname{font-size:11px;fill:var(--text);font-weight:600}
 .switch{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin:0 0 6px}
 .switch button{border:0;border-radius:0;padding:4px 12px;font-size:13px;font-weight:600;background:var(--surface);color:var(--muted)}
@@ -108,4 +110,4 @@ table.sales+.toggle,div>.toggle{margin-top:8px}
 .scatter .sale.over{fill:none;stroke:var(--muted);stroke-width:1.5}.scatter.dense .sale.over{fill:none;stroke:var(--muted);fill-opacity:1}
 .sheetstats{margin:4px 0;font-variant-numeric:tabular-nums;color:var(--text)}
 input.unit{width:5.5em;padding:2px 4px;font:inherit;color:var(--text);background:var(--raised);border:1px solid var(--line);border-radius:4px;text-align:right}button.link{border:0;background:none;padding:0;color:var(--muted);text-decoration:underline;font-size:12px;font-weight:400;cursor:pointer}
-td.obs{font-size:12px;color:var(--muted);text-align:left}td.obs .warn{color:var(--bad)}
+th.obs{color:var(--muted);font-weight:600;font-size:13px;white-space:nowrap}td.obs{font-size:12px;color:var(--muted)}td.obs .warn{color:var(--bad)}

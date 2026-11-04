@@ -28,7 +28,7 @@
    const refino=cols.refino>=0?integer(row[cols.refino]):integer(String(row[cols.base]??'').match(/\+\s*([\d.,]+)/)?.[1]);
    if(refino>0)refinoActual[key]=refino;
   }
-  // "Nota da Calculadora: 3.575 de 10 (Razoável)": só para o gráfico de vendas (o preço não usa a nota).
+  // "Nota da Calculadora: 3.575 de 10 (Razoável)": entra no preço e no gráfico "Por nota" (sem ela, o preço usa a calculada).
   return {nome,level:integer(field('n[íi]vel')),potencia,quality:decimal(field('qualidade')),nota:decimal(field('nota(?: da calculadora)?')),shiny,ivs,refinoActual};
  }
  const api={parse};

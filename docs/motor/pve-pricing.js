@@ -76,7 +76,7 @@ function estimate(target,rows,{k=5,variant='factor',addons=0}={}){
   sources:{family:family.length,market:market.length,levelNear:near.length>=MIN_MARKET},
   uncertain:{family:family.filter(r=>r.uncertain).length,market:market.filter(r=>r.uncertain).length}};
 }
-const NEIGHBORS={layers:[1,.2,.05,.01],levelSigma:1.5,pveSigma:.15,halfLifeDays:14,minWeight:1e-5,bias:Math.log(1.09),refinedWeight:1,uncertainPlain:1};
+const NEIGHBORS={layers:[1,.2,.05,.01],levelSigma:1.5,pveSigma:.15,notaSigma:.3,halfLifeDays:14,minWeight:1e-5,bias:Math.log(1.09),refinedWeight:1,uncertainPlain:1};
 const CONFIDENCE={weights:[-2.64,.66,.68,1.53,.85],keys:['proximidade','certeza','consistencia','ampliacao']};
 function marketLine(points){
  const n=points.length,m=k=>points.reduce((s,p)=>s+p[k],0)/n,mx=m('x'),ml=m('l'),my=m('y');let xx=0,ll=0,xl=0,xy=0,ly=0;
@@ -85,6 +85,20 @@ function marketLine(points){
  if(b<0){b=0;c=ll>1e-9?Math.max(0,ly/ll):0;}if(c<0){c=0;b=xx>1e-9?Math.max(0,xy/xx):0;}
  return (x,l)=>my+b*(x-mx)+c*(l-ml);
 }
+function marketFit(same){
+ const L=same.filter(r=>Number.isFinite(r.nota));
+ if(L.length<MIN_MARKET){const line=marketLine(same.map(r=>({x:Math.log(r.pve),l:Math.log(r.level),y:r.logBase}))),g=(x,l)=>line(x,l);g.level=l=>line(0,l)-line(0,0);return g;}
+ const y=L.map(r=>r.logBase),X={pve:L.map(r=>Math.log(r.pve)),nota:L.map(r=>r.nota),level:L.map(r=>Math.log(r.level))},n=L.length;
+ const mean=a=>a.reduce((s,v)=>s+v,0)/a.length,a0=mean(y),f={pve:()=>0,nota:()=>0,level:()=>0};
+ const line=(xs,ys)=>{const mx=mean(xs),my=mean(ys);let sxy=0,sxx=0;for(let i=0;i<n;i++){sxy+=(xs[i]-mx)*(ys[i]-my);sxx+=(xs[i]-mx)**2;}const k=sxx>1e-9?Math.max(0,sxy/sxx):0;return x=>k*(x-mx);};
+ const curve=(xs,ys)=>{const c=pav(xs.map((x,i)=>({x,y:ys[i]})));return x=>at(c,x);};
+ for(let pass=0;pass<6;pass++)for(const k of ['pve','nota','level']){
+  const others=Object.keys(f).filter(j=>j!==k),res=y.map((v,i)=>v-a0-others.reduce((s,j)=>s+f[j](X[j][i]),0));
+  const g=(k==='pve'?line:curve)(X[k],res),m=mean(X[k].map(g));f[k]=x=>g(x)-m;
+ }
+ const notaMean=mean(X.nota);
+ const g=(x,l,nota)=>a0+f.pve(x)+f.nota(Number.isFinite(nota)?nota:notaMean)+f.level(l);g.level=l=>f.level(l);return g;
+}
 function weightedQuantile(points,q){const s=[...points].sort((a,b)=>a.v-b.v),total=s.reduce((t,p)=>t+p.w,0);let acc=0;for(const p of s){acc+=p.w;if(acc>=q*total)return p.v;}return s.at(-1).v;}
 function confidence(parts,weights=CONFIDENCE.weights){
  const x=CONFIDENCE.keys.map(k=>parts[k]),z=weights[0]+x.reduce((s,v,i)=>s+weights[i+1]*v,0),chance=1/(1+Math.exp(-z));
@@ -92,22 +106,22 @@ function confidence(parts,weights=CONFIDENCE.weights){
  return {chance,percent:Math.min(90,Math.max(10,Math.round(chance*10)*10)),lowest};
 }
 function influence(pts,W){const by=new Map();for(const p of pts)if(p.layer===0)by.set(p.r,(by.get(p.r)||0)+p.w);return [...by].map(([r,w])=>({r,share:w/W,closeness:w})).sort((a,b)=>b.share-a.share).slice(0,30);}
-function neighbors(target,rows,{addons=0,typesOf=()=>[],megaUnit=()=>0,weights,cfg=NEIGHBORS,bias=cfg.bias??0}={}){
+function neighbors(target,rows,{addons=0,typesOf=()=>[],megaUnit=()=>0,weights,cfg=NEIGHBORS,bias=cfg.bias??0,fit:given}={}){
  if(!target||addons==null)return null;
  const same=rows.filter(r=>r.shiny===target.shiny),near=same.filter(r=>nearLevel(r.level,target.level)),market=near.length>=MIN_MARKET?near:same;
  if(market.length<3)return null;
- const fit=marketLine(same.map(r=>({x:Math.log(r.pve),l:Math.log(r.level),y:r.logBase}))),mine=typesOf(target.family);
+ const fit=given||marketFit(same),mine=typesOf(target.family),notaW=r=>cfg.notaSigma&&Number.isFinite(r.nota)&&Number.isFinite(target.nota)?Math.exp(-(((r.nota-target.nota)/cfg.notaSigma)**2)/2):1;
  const layerOf=r=>{if(r.family===target.family)return 0;const t=typesOf(r.family);if(mine.length&&t.length===mine.length&&mine.every(x=>t.includes(x)))return 1;return mine.some(x=>t.includes(x))?2:3;};
  const at=target.at??Date.now(),pts=[];
  for(const r of same){
-  const layer=layerOf(r),w=(r.refined?cfg.refinedWeight??1:1)*cfg.layers[layer]*Math.exp(-((Math.log(r.level/target.level)/cfg.levelSigma)**2)/2)*Math.exp(-((Math.log(r.pve/target.pve)/cfg.pveSigma)**2)/2)*.5**((at-r.at)/(cfg.halfLifeDays*DAY_MS));
-  if(!(w>=cfg.minWeight))continue;const expected=fit(Math.log(r.pve),Math.log(r.level)),uncertain=r.uncertain===true;
+  const layer=layerOf(r),w=(r.refined?cfg.refinedWeight??1:1)*cfg.layers[layer]*Math.exp(-((Math.log(r.level/target.level)/cfg.levelSigma)**2)/2)*Math.exp(-((Math.log(r.pve/target.pve)/cfg.pveSigma)**2)/2)*notaW(r)*.5**((at-r.at)/(cfg.halfLifeDays*DAY_MS));
+  if(!(w>=cfg.minWeight))continue;const expected=fit(Math.log(r.pve),Math.log(r.level),r.nota),uncertain=r.uncertain===true;
   if(!uncertain){pts.push({v:r.logBase-expected,w,layer,uncertain,r});continue;}
   const plain=Math.max(1,r.price-(r.mega?PER_ADDON*megaUnit(r.shiny,r.at):0));
   const up=cfg.uncertainPlain??.5;pts.push({v:r.logBase-expected,w:w*(1-up),layer,uncertain,r},{v:Math.log(plain)-expected,w:w*up,layer,uncertain,r});
  }
  if(!pts.length)return null;
- const mid=weightedQuantile(pts,.5),lo=weightedQuantile(pts,.25)-mid,hi=weightedQuantile(pts,.75)-mid,center=fit(Math.log(target.pve),Math.log(target.level))+mid-bias;
+ const mid=weightedQuantile(pts,.5),lo=weightedQuantile(pts,.25)-mid,hi=weightedQuantile(pts,.75)-mid,center=fit(Math.log(target.pve),Math.log(target.level),target.nota)+mid-bias;
  const price=x=>Math.max(1,Math.round(Math.exp(x)+addons)),sum=f=>pts.filter(f).reduce((s,p)=>s+p.w,0),W=sum(()=>true);
  const close=pts.filter(p=>p.layer<=1),cw=close.reduce((s,p)=>s+p.w,0),neff=cw?cw**2/close.reduce((s,p)=>s+p.w*p.w,0):0;
  const parts={proximidade:neff/(neff+5),certeza:sum(p=>!p.uncertain)/W,consistencia:Math.exp(-(hi-lo)),ampliacao:sum(p=>p.layer===0)/W};
@@ -116,6 +130,25 @@ function neighbors(target,rows,{addons=0,typesOf=()=>[],megaUnit=()=>0,weights,c
   parts,confidence:confidence(parts,weights),influence:influence(pts,W),uncertain:{family:family.filter(r=>r.uncertain).length,market:same.filter(r=>r.uncertain).length}};
 }
 const MODEL={k:5,variant:'curve'};
+const LEVEL_STEPS=[20,40,60,80,100,150,200,300,500,700,1000,1500,2000,3000,5000,10000];
+const CAP_LADDER={1:[100],2:[40,100],3:[20,40,100],4:[20,40,70,100]},chains=new WeakMap();
+function chainCap(central,id){
+ if(!chains.has(central)){
+  const kids=id=>central.edges?[...(central.edges.get(id)||[])]:(central.species.get(id)?.evo||[]),up=new Map(),down=new Map();
+  for(const [id]of central.species){up.set(id,0);down.set(id,0);}
+  for(let pass=0;pass<8;pass++){let changed=false;for(const [id]of central.species)for(const k of kids(id)){if(k===id||!central.species.has(k))continue;
+   if(up.get(id)+1>up.get(k)){up.set(k,up.get(id)+1);changed=true;}if(down.get(k)+1>down.get(id)){down.set(id,down.get(k)+1);changed=true;}}if(!changed)break;}
+  chains.set(central,{up,down});
+ }
+ const {up,down}=chains.get(central),stage=up.get(id)??0,ladder=CAP_LADDER[Math.min(4,stage+(down.get(id)??0)+1)];
+ return ladder[Math.min(stage,ladder.length-1)];
+}
+function dropLevel(central,rows,speciesId){
+ const e=central.species.get(speciesId),base=megaBase(central,e),id=central.species.has(base)?base:speciesId,count=new Map();
+ for(const r of rows)if(r.speciesId===id)count.set(r.level,(count.get(r.level)||0)+1);
+ const total=[...count.values()].reduce((a,b)=>a+b,0),[level,n]=[...count].sort((a,b)=>b[1]-a[1])[0]||[];
+ return n>=5&&n/total>=.3?level:chainCap(central,id);
+}
 function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.now(),confidenceWeights,bias}){
  const speciesId=speciesLookup(central)(null,sheet?.nome);
  if(speciesId==null)throw Error(`Espécie não reconhecida: ${String(sheet?.nome||'').slice(0,60)}.`);
@@ -125,12 +158,16 @@ function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.n
  if(!target)throw Error('Não foi possível calcular o PvE desta ficha.');
  const quote=itemQuotes(itemPrices),parts=target.addons.map(a=>{const current=Number(currentItems?.[a.id]),unit=current>0?current:quote(a.id,now);return {id:a.id,label:a.label,quantity:a.quantity,unit:unit??null,quote:quote(a.id,now)??null,total:unit!=null?Math.round(unit*a.quantity):null};});
  const known=parts.reduce((s,p)=>s+(p.total||0),0),typesOf=id=>central.species.get(id)?.t||[],megaUnit=(shiny,at)=>quote(shiny?MEGA_SHINY:MEGA,at)??0;
- const e=neighbors({...target,at:now},rows,{addons:known,typesOf,megaUnit,weights:confidenceWeights,...(Number.isFinite(bias)?{bias}:{})});
+ const nota=Number(sheet.nota),fit=marketFit(rows.filter(r=>r.shiny===target.shiny));
+ const e=neighbors({...target,at:now,nota:Number.isFinite(nota)&&sheet.nota!=null?nota:null},rows,{addons:known,typesOf,megaUnit,weights:confidenceWeights,fit,...(Number.isFinite(bias)?{bias}:{})});
  const species=central.species.get(speciesId);
  const result={name:species.n,speciesId,types:species.t||[],family:target.familyName,familyId:target.family,shiny:target.shiny,pve:target.pve,level:target.level,refined,parts,missing:parts.filter(p=>p.total==null).map(p=>p.label)};
  if(!e)return {...result,available:false};
  const comps=e.influence.map(({r,share,closeness})=>({share,closeness:Math.round(closeness*1000)/1000,at:r.at,price:r.price,base:Math.round(r.base),level:r.level,pve:Math.round(r.pve),nota:r.nota??null,speciesId:r.speciesId,name:r.name,shiny:r.shiny,uncertain:r.uncertain===true,refined:r.refined===true,types:central.species.get(r.speciesId)?.t||[]}));
- return {...result,available:true,low:e.low,median:e.median,high:e.high,base:Math.round(e.base),weight:e.weight,familyCount:e.familyCount,marketCount:e.marketCount,uncertain:e.uncertain,confidenceParts:e.parts,confidence:e.confidence,comps};
+ const drop=dropLevel(central,rows,speciesId),top=Math.max(target.level,...rows.filter(r=>r.shiny===target.shiny).map(r=>r.level)),from=Math.min(target.level,drop);
+ const levels=[...new Set([...LEVEL_STEPS.filter(l=>l>from&&l<=top),from,target.level])].sort((a,b)=>a-b),here=fit.level(Math.log(target.level));
+ const byLevel=levels.map(level=>{const k=Math.exp(fit.level(Math.log(level))-here),p=x=>Math.max(1,Math.round(x*k+known));return {level,low:p(e.low-known),median:p(e.base),high:p(e.high-known),current:level===target.level,drop:level===drop};});
+ return {...result,available:true,low:e.low,median:e.median,high:e.high,byLevel,dropLevel:drop,base:Math.round(e.base),weight:e.weight,familyCount:e.familyCount,marketCount:e.marketCount,uncertain:e.uncertain,confidenceParts:e.parts,confidence:e.confidence,comps};
 }
-root.PokeIdlePvePricing={describe,prepare,estimate,neighbors,confidence,priceSheet,pav,at,itemQuotes,day,MEGA,MEGA_SHINY,MODEL,NEIGHBORS,CONFIDENCE};
+root.PokeIdlePvePricing={describe,prepare,estimate,neighbors,marketFit,confidence,priceSheet,pav,at,itemQuotes,day,MEGA,MEGA_SHINY,MODEL,NEIGHBORS,CONFIDENCE};
 })(window);
