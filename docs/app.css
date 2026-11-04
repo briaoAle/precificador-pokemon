@@ -6,7 +6,12 @@ a{color:var(--text)}
 h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:0 0 12px}
 .muted{color:var(--muted)}.small{font-size:13px}
 .top,.layout,.foot{max-width:1100px;margin:0 auto;padding:0 16px}
-.top{padding-top:24px;padding-bottom:16px}.top p{margin:0}
+.top{padding-top:24px;padding-bottom:16px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.top p{margin:0}.toptext{min-width:0}
+.newsbtn{flex:none;display:inline-flex;align-items:center;gap:6px;padding:6px 12px;font-size:13px;color:var(--muted)}.newsbtn:hover{color:var(--text)}
+.newsicon{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+dialog.news{max-width:560px;width:calc(100% - 32px);max-height:80vh;overflow:auto;padding:16px 20px;color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:8px}
+dialog.news::backdrop{background:rgba(0,0,0,.6)}.newshead{display:flex;justify-content:space-between;align-items:center;gap:12px}.newshead h2{margin:0}
+.newsclose{padding:4px 12px;font-size:13px}dialog.news h3{font-size:14px;margin:16px 0 4px;color:var(--muted)}dialog.news ul{margin:0;padding-left:20px}dialog.news li{margin:4px 0}
 .layout{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px;align-items:start}
 @media (max-width:820px){.layout{grid-template-columns:minmax(0,1fr)}}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
