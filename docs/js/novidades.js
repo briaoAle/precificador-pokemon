@@ -3,6 +3,12 @@
 (function(){
  'use strict';
  const NOVIDADES=[
+  {data:'04/11/2026, 11h46',itens:[
+   'Novo layout: a ficha e o preço lado a lado, e embaixo os dois gráficos lado a lado, a tabela de vendas e, por último, a auditoria.',
+   'Embaixo da confiança, "Por que a confiança é baixa" lista cada motivo numa linha, e "Como chegamos ao preço" compara este Pokémon com as vendas mais parecidas.',
+   'Os motivos da confiança dizem quantas vendas comparáveis existem de fato: a família pode ter muitas vendas e quase nenhuma parecida em Poder e Nota.',
+   'Quando quase todo o preço vem de outras espécies, a tabela de vendas da família avisa.',
+   'No gráfico de vendas, a linha amarela é a Nota ou o Poder deste Pokémon, conforme o eixo escolhido.']},
   {data:'04/11/2026, 11h04',itens:[
    'Botão "Novidades" no topo da página, com o que mudou em cada versão do site.']},
   {data:'04/11/2026, 10h28',itens:[
