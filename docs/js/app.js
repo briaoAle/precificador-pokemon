@@ -112,6 +112,8 @@
  }
  const REASONS={proximidade:'poucas vendas parecidas com este Pokémon',certeza:'muitas vendas com Adicional incerto',consistencia:'os preços das vendas parecidas variam muito',ampliacao:'poucas vendas da família, completadas com outras espécies'};
  const PART_LABELS={proximidade:'Vendas parecidas (quantas existem)',certeza:'Adicionais confirmados (peso sem Adicional incerto)',consistencia:'Preços que concordam (o quanto as vendas concordam no preço)',ampliacao:'Peso da própria família (quanto vem de vendas da família)'};
+// Nome curto da nota que mais pesa na calibração atual (precos.json → confianca.pesos; ordem: proximidade, certeza, consistência, ampliação).
+ const topPart=()=>{const w=precos.confianca?.pesos||[],k=Object.keys(PART_LABELS),i=[1,2,3,4].reduce((a,b)=>(w[b]??0)>(w[a]??0)?b:a,1);return PART_LABELS[k[i-1]].replace(/ \(.*$/,'');};
  // Auditoria (fechada), em camadas para o jogador comum: um resumo de 4 linhas, "Como calculamos" e "Quão bem isso
  // funcionou" (os dois fechados). Os números vêm do resultado e de precos.json (teste e confianca).
  const sub=(title,...nodes)=>{const d=el('details','sub');d.append(el('summary',null,title),...nodes);return d;};
@@ -134,13 +136,13 @@
    el('h5',null,'Os números da tela'),el('p',null,'O Preço justo é o valor do meio dessas vendas, já ajustadas para o Poder e o nível deste Pokémon e contando o peso de cada uma. Vender rápido: 25% das vendas parecidas saíram abaixo dele. Esperar: 25% saíram acima.'),
    ...(precos.correcao?.bias?[el('p',null,`Correção: nas vendas dos últimos ${precos.correcao.dias} dias, o cálculo saía em média ${pct(Math.abs(Math.exp(precos.correcao.bias)-1))}% ${precos.correcao.bias>0?'acima':'abaixo'} do valor pago. Esse desvio já vem descontado dos três números.`)]:[]),
    el('h5',null,'Adicionais'),el('p',null,'Cada Adicional conta 10 unidades do item (fragmentos de Z-Move ou AoE, pedras Mega) pelo preço do dia: a mediana das leituras do menor anúncio no mercado naquele dia. O valor é tirado de cada venda antes da comparação e somado de volta no fim, pelo preço de hoje. Mega e Mega Shiny vêm da própria ficha.'),
-   el('h5',null,'Vendas com Adicional incerto'),el('p',null,`O jogo mostra o AoE e o Z-Move que o Pokémon tem hoje, não os que tinha na venda. Quando não dá para saber, a venda conta duas vezes, com metade do peso: uma com e outra sem os Adicionais.${u.family?` Aqui, ${gems(u.family)} das ${gems(r.familyCount)} vendas de ${fam} estão nesse caso.`:''}`),
-   el('h5',null,'Pokémon refinados'),el('p',null,'O refino (o "+N" comprado com pedras) não entra no Poder. Vendas de Pokémon refinados entram como se não tivessem refino, com metade do peso, porque o preço pago inclui o refino e não sabemos quanto dele era o refino.')];
+   el('h5',null,'Vendas com Adicional incerto'),el('p',null,`O jogo mostra o AoE e o Z-Move que o Pokémon tem hoje, não os que tinha na venda. Quando não dá para saber, a venda entra como se eles tivessem sido aplicados depois: o valor deles não é descontado do preço pago, para o cálculo errar para cima e não para baixo. O risco aparece na confiança.${u.family?` Aqui, ${gems(u.family)} das ${gems(r.familyCount)} vendas de ${fam} estão nesse caso.`:''}`),
+   el('h5',null,'Pokémon refinados'),el('p',null,'O refino (o "+N" comprado com pedras) não entra no Poder. Vendas de Pokémon refinados entram como se não tivessem refino, com o mesmo peso das outras. O preço pago inclui o refino, o que puxa o cálculo um pouco para cima.')];
   if(c&&r.confidenceParts){
    const parts=el('ul','parts');for(const [k,label]of Object.entries(PART_LABELS)){const item=el('li');item.append(el('span',null,label),el('b',null,String(Math.round(r.confidenceParts[k]*100))));parts.append(item);}
    const avg=Math.round(Object.values(r.confidenceParts).reduce((s,x)=>s+x,0)/4*100);
    how.push(el('h5',null,'De onde vem a confiança'),el('p',null,'Ela junta quatro notas deste Pokémon, de 0 a 100:'),parts,
-    el('p',null,`As notas não entram por média simples (que daria ${avg}): cada uma tem um peso aprendido nas vendas recentes, e "Preços que concordam" é a que mais pesa. Com esses pesos, as quatro dão ${Math.round(c.chance*100)}%, arredondados para ${c.percent}%. O que mais puxou para baixo: ${REASONS[c.lowest]}.`));
+    el('p',null,`As notas não entram por média simples (que daria ${avg}): cada uma tem um peso aprendido nas vendas recentes, e "${topPart()}" é a que mais pesa. Com esses pesos, as quatro dão ${Math.round(c.chance*100)}%, arredondados para ${c.percent}%. O que mais puxou para baixo: ${REASONS[c.lowest]}.`));
   }
   details.append(sub('Como calculamos',...how));
   // Quão bem isso funcionou.
@@ -149,7 +151,7 @@
    const times=t.erroMediano.toLocaleString('pt-BR',{maximumFractionDigits:1}),list=el('ul');
    list.append(li(`${pct(t.dentroDaFaixa)}% saíram entre Vender rápido e Esperar.`),li(`${pct(t.ate25)}% saíram a até 25% do Preço justo (mais ou menos 1 em cada ${Math.round(1/t.ate25)}).`),
     li(`Em metade das vendas, o preço pago ficou a até ${times} vez do Preço justo, para mais ou para menos.`),
-    li(t.vies>=0?`Em geral, o Preço justo ficou ${pct(t.vies)}% acima do valor pago.`:`Em geral, o Preço justo ficou ${pct(-t.vies)}% abaixo do valor pago.`));
+    li(Math.abs(t.vies)<.01?'Em geral, o Preço justo ficou alinhado ao valor pago (já com a correção).':t.vies>0?`Em geral, o Preço justo ficou ${pct(t.vies)}% acima do valor pago.`:`Em geral, o Preço justo ficou ${pct(-t.vies)}% abaixo do valor pago.`));
    proof.push(el('p',null,`Calculamos o preço de ${gems(t.vendas)} vendas reais, cada uma usando só as vendas que aconteceram antes dela, como se fosse a primeira vez:`),list,...generic(t,'h5'),
     el('p',null,'O que isso quer dizer: o mercado é feito por jogadores e varia muito; dois Pokémon quase iguais podem sair por preços bem diferentes no mesmo dia. Use a faixa entre Vender rápido e Esperar, não só o número do meio.'));
   }
@@ -177,24 +179,29 @@
   const table=el('table','sales'),head=el('tr'),body=el('tbody'),more=el('button','toggle');table.append(el('thead'),body);table.tHead.append(head);more.type='button';
   more.addEventListener('click',()=>{open=!open;draw();});
   function draw(){
+   const obsHead=el('th',null,'Observação');obsHead.scope='col';
    head.replaceChildren(...cols.map(c=>{const th=el('th');th.scope='col';const b=el('button',null,c.label+(sort.key===c.key?(sort.dir==='asc'?' ↑':' ↓'):''));b.type='button';
     if(sort.key===c.key)th.setAttribute('aria-sort',sort.dir==='asc'?'ascending':'descending');
+    if(c.key==='pve')th.title='PvE sem adicionais, no Nv 100 e na última evolução (o mesmo número do jogo)';
     if(c.key==='closeness')th.title='O quanto esta venda se parece com o seu Pokémon em nível, Poder e data (100% = idêntica e vendida hoje)';
-    b.onclick=()=>{sort=sort.key===c.key?{key:c.key,dir:sort.dir==='asc'?'desc':'asc'}:{key:c.key,dir:'desc'};draw();};th.append(b);return th;}));
+    b.onclick=()=>{sort=sort.key===c.key?{key:c.key,dir:sort.dir==='asc'?'desc':'asc'}:{key:c.key,dir:'desc'};draw();};th.append(b);return th;}),obsHead);
    const sign=sort.dir==='asc'?1:-1,list=[...comps].sort((a,b)=>((a[sort.key]??-1)-(b[sort.key]??-1))*sign||b.at-a.at);
    body.replaceChildren(...list.slice(0,open?list.length:FIRST).map(c=>{
     const tr=el('tr'),price=el('td',null,gems(c.price));
-    if(c.refined){const tag=el('span','tag','refinado');tag.title='Venda de um Pokémon refinado: entra com o Poder sem o refino e metade do peso (o preço pago inclui o refino)';price.prepend(tag,' ');}
-    if(c.uncertain){const tag=el('span','tag warn','incerto');tag.title='Adicional incerto: o AoE ou Z-Move desta venda pode ter sido aplicado depois dela, ou o preço do Adicional é de outro dia';price.prepend(tag,' ');}
+    // Observação numa coluna própria, longe do preço: as duas marcas não têm relação entre si.
+    const obs=el('td','obs'),marks=[];
+    if(c.uncertain){const m=el('span','warn','Adicional incerto');m.title='O jogo mostra o AoE e o Z-Move que o Pokémon tem hoje: esta venda foi lida depois e eles podem ter sido aplicados pelo comprador';marks.push(m);}
+    if(c.refined){const m=el('span',null,'Refinado');m.title='Pokémon com refino: entra no cálculo sem o refino (o preço pago inclui o refino)';marks.push(m);}
+    marks.forEach((m,i)=>{if(i)obs.append(' · ');obs.append(m);});
     tr.title=`${c.name}${c.shiny?' shiny':''}`;
-    tr.append(el('td',null,share(c.closeness)),el('td',null,gems(c.level)),el('td',null,Number.isFinite(c.nota)?METRICS.nota.fmt(c.nota):'–'),el('td',null,Number.isFinite(c.pve)?gems(c.pve):'–'),el('td',null,when(c.at)),price);return tr;}));
+    tr.append(el('td',null,share(c.closeness)),el('td',null,gems(c.level)),el('td',null,Number.isFinite(c.nota)?METRICS.nota.fmt(c.nota):'–'),el('td',null,Number.isFinite(c.pve)?gems(c.pve):'–'),el('td',null,when(c.at)),price,obs);return tr;}));
    more.hidden=list.length<=FIRST;more.textContent=open?'Mostrar menos':`Mostrar mais (${list.length-FIRST})`;
   }
   draw();const wrap=el('div','tablewrap');wrap.append(table);const box=el('div');box.append(wrap,more);return box;
  }
 
  // Números da ficha ao lado da sprite, os mesmos dos tooltips do gráfico e da tabela de vendas.
- function sheetStats(r){const bits=[];if(Number.isFinite(r.nota))bits.push('Nota '+METRICS.nota.fmt(r.nota));if(Number.isFinite(r.pve))bits.push('PvE '+gems(r.pve));
+ function sheetStats(r){const bits=[];if(Number.isFinite(r.nota))bits.push('Nota '+METRICS.nota.fmt(r.nota));if(Number.isFinite(r.pve))bits.push('PvE sem adicionais (Nv 100) '+gems(r.pve));
   if(Number.isInteger(r.potencia))bits.push('P'+r.potencia);if(Number.isFinite(r.quality))bits.push('Qualidade '+r.quality.toLocaleString('pt-BR',{maximumFractionDigits:3}));if(r.ivSum)bits.push('IV '+r.ivSum);
   return el('div','sheetstats small',bits.join(' · '));}
  function render(r){
@@ -206,8 +213,9 @@
    for(const [key,label]of [['low','Vender rápido'],['median','Preço justo'],['high','Esperar']]){const box=el('div','price'+(key==='median'?' main':''));box.append(el('span',null,label),el('b',null,gems(r[key])));prices.append(box);}
    const parts=el('ul','parts'),row=(label,value,cls)=>{const li=el('li',cls);li.append(el('span',null,label),el('b',null,value));parts.append(li);};
    row('Pokémon',gems(r.base)+' Gemas');
-   for(const p of r.parts)row(`${p.label} (${p.quantity} × ${p.unit!=null?gems(p.unit):'?'})`,p.total!=null?gems(p.total)+' Gemas':'sem cotação','sub');
+   for(const p of r.parts)parts.append(addonRow(p));
    nodes.push(el('p','muted small','Preços em Gemas.'),prices,parts);
+   if(r.parts.length)nodes.push(el('p','muted small','Você pode trocar o preço por unidade dos Adicionais: o cálculo usa a cotação do dia, que pode estar defasada.'));
    // Confiança do Preço justo: de 10 em 10; vermelha abaixo de 20% (com aviso), amarela de 20% a 60% (com o que mais
    // pesou para baixo), verde de 60% para cima. O detalhe fica na auditoria.
    if(r.confidence){const c=r.confidence,box=el('div','confidence '+(c.percent<20?'low':c.percent<60?'mid':'high')),bar=el('div','meter'),fill=el('i');
@@ -252,10 +260,31 @@
   pricedKey=keyOf(sheet);$('reset').hidden=true;
   // Trava de nota (03/11/2026): abaixo de 3,5 só precifica se a última evolução chegar a 3,5 (Mega não conta).
   const lock=notaLock(sheet);if(lock)return error(lock);
+  lastSheet=sheet;compute();
+ }
+ // Preço por unidade dos Adicionais digitado pelo usuário (itemId → Gemas), guardado neste navegador: vale só para os
+ // Adicionais deste Pokémon; as vendas comparadas continuam com o preço do item no dia de cada venda.
+ const ITEM_KEY='precificador-adicionais-v1';let lastSheet=null;
+ const loadItems=()=>{try{const v=JSON.parse(localStorage.getItem(ITEM_KEY)||'{}');return v&&typeof v==='object'?v:{};}catch{return {};}};
+ const saveItems=v=>{try{localStorage.setItem(ITEM_KEY,JSON.stringify(v));}catch{}};
+ function setItem(id,unit){const v=loadItems();if(unit>0)v[id]=unit;else delete v[id];saveItems(v);compute();}
+ function compute(){
+  const sheet=lastSheet;if(!sheet)return;
   // O tipo do Z-Move não muda o preço (o fragmento é o mesmo): vai um tipo qualquer e a linha mostra só "Z-Move".
-  try{const r=P.priceSheet(central,{...sheet,tmElemental:$('zmove').checked?'NORMAL':null,tmAoe:$('aoe').checked},{rows,itemPrices:precos.itens,now:Date.parse(precos.geradoEm),confidenceWeights:precos.confianca?.pesos,bias:precos.correcao?.bias});
+  try{const r=P.priceSheet(central,{...sheet,tmElemental:$('zmove').checked?'NORMAL':null,tmAoe:$('aoe').checked},{rows,itemPrices:precos.itens,currentItems:loadItems(),now:Date.parse(precos.geradoEm),confidenceWeights:precos.confianca?.pesos,bias:precos.correcao?.bias});
    render({...r,nota:sheet.nota,potencia:sheet.potencia,quality:sheet.quality,ivSum:Object.values(sheet.ivs||{}).reduce((s,v)=>s+v,0),parts:r.parts.map(p=>/^Z-Move/.test(p.label)?{...p,label:'Z-Move'}:p),missing:(r.missing||[]).map(l=>/^Z-Move/.test(l)?'Z-Move':l)});}
   catch(e){error(e.message);}
+ }
+ // Linha de um Adicional com o preço por unidade editável (Enter ou sair do campo recalcula; "cotação" volta ao do dia).
+ function addonRow(p){
+  const li=el('li','sub'),label=el('span'),input=el('input','unit');input.type='number';input.min='1';input.step='1';input.inputMode='numeric';
+  input.value=p.unit!=null?String(Math.round(p.unit)):'';input.setAttribute('aria-label',`Preço de 1 unidade de ${p.label}, em Gemas`);
+  const mine=Number(loadItems()[p.id])>0;input.title=mine?'Seu valor (guardado neste navegador)':`Cotação de ${p.quote!=null?gems(p.quote):'?'} Gemas por unidade`;
+  const apply=()=>{const v=Math.round(Number(input.value));if(v>0&&v!==Math.round(p.unit||0))setItem(p.id,v);};
+  input.addEventListener('change',apply);input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();apply();}});
+  label.append(`${p.label} (${p.quantity} × `,input,')');
+  if(mine){const back=el('button','link','cotação');back.type='button';back.title=`Voltar à cotação do dia (${p.quote!=null?gems(p.quote):'?'})`;back.addEventListener('click',()=>setItem(p.id,0));label.append(' ',back);}
+  li.append(label,el('b',null,p.total!=null?gems(p.total)+' Gemas':'sem cotação'));return li;
  }
  async function start(){
   $('form').addEventListener('submit',price);$('ficha').addEventListener('input',pasted);

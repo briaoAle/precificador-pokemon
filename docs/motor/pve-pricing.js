@@ -76,7 +76,7 @@ function estimate(target,rows,{k=5,variant='factor',addons=0}={}){
   sources:{family:family.length,market:market.length,levelNear:near.length>=MIN_MARKET},
   uncertain:{family:family.filter(r=>r.uncertain).length,market:market.filter(r=>r.uncertain).length}};
 }
-const NEIGHBORS={layers:[1,.2,.05,.01],levelSigma:1.5,pveSigma:.15,halfLifeDays:14,minWeight:1e-5,bias:Math.log(1.09),refinedWeight:.5};
+const NEIGHBORS={layers:[1,.2,.05,.01],levelSigma:1.5,pveSigma:.15,halfLifeDays:14,minWeight:1e-5,bias:Math.log(1.09),refinedWeight:1,uncertainPlain:1};
 const CONFIDENCE={weights:[-2.64,.66,.68,1.53,.85],keys:['proximidade','certeza','consistencia','ampliacao']};
 function marketLine(points){
  const n=points.length,m=k=>points.reduce((s,p)=>s+p[k],0)/n,mx=m('x'),ml=m('l'),my=m('y');let xx=0,ll=0,xl=0,xy=0,ly=0;
@@ -104,7 +104,7 @@ function neighbors(target,rows,{addons=0,typesOf=()=>[],megaUnit=()=>0,weights,c
   if(!(w>=cfg.minWeight))continue;const expected=fit(Math.log(r.pve),Math.log(r.level)),uncertain=r.uncertain===true;
   if(!uncertain){pts.push({v:r.logBase-expected,w,layer,uncertain,r});continue;}
   const plain=Math.max(1,r.price-(r.mega?PER_ADDON*megaUnit(r.shiny,r.at):0));
-  pts.push({v:r.logBase-expected,w:w/2,layer,uncertain,r},{v:Math.log(plain)-expected,w:w/2,layer,uncertain,r});
+  const up=cfg.uncertainPlain??.5;pts.push({v:r.logBase-expected,w:w*(1-up),layer,uncertain,r},{v:Math.log(plain)-expected,w:w*up,layer,uncertain,r});
  }
  if(!pts.length)return null;
  const mid=weightedQuantile(pts,.5),lo=weightedQuantile(pts,.25)-mid,hi=weightedQuantile(pts,.75)-mid,center=fit(Math.log(target.pve),Math.log(target.level))+mid-bias;
@@ -123,7 +123,7 @@ function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.n
  const refined=Object.keys(sheet.refinoActual||{}).length>0;
  const target=describe(central,{speciesId,level:sheet.level,potencia:sheet.potencia,quality:sheet.quality,shiny:sheet.shiny===true,ivs:sheet.ivs,tmElemental:sheet.tmElemental||null,tmAoe:sheet.tmAoe===true,refino:{}});
  if(!target)throw Error('Não foi possível calcular o PvE desta ficha.');
- const quote=itemQuotes(itemPrices),parts=target.addons.map(a=>{const current=Number(currentItems?.[a.id]),unit=current>0?current:quote(a.id,now);return {label:a.label,quantity:a.quantity,unit:unit??null,total:unit!=null?Math.round(unit*a.quantity):null};});
+ const quote=itemQuotes(itemPrices),parts=target.addons.map(a=>{const current=Number(currentItems?.[a.id]),unit=current>0?current:quote(a.id,now);return {id:a.id,label:a.label,quantity:a.quantity,unit:unit??null,quote:quote(a.id,now)??null,total:unit!=null?Math.round(unit*a.quantity):null};});
  const known=parts.reduce((s,p)=>s+(p.total||0),0),typesOf=id=>central.species.get(id)?.t||[],megaUnit=(shiny,at)=>quote(shiny?MEGA_SHINY:MEGA,at)??0;
  const e=neighbors({...target,at:now},rows,{addons:known,typesOf,megaUnit,weights:confidenceWeights,...(Number.isFinite(bias)?{bias}:{})});
  const species=central.species.get(speciesId);
