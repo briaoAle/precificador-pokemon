@@ -187,6 +187,7 @@
    const obsHead=el('th','obs','Observação');obsHead.scope='col';
    head.replaceChildren(...cols.map(c=>{const th=el('th');th.scope='col';const b=el('button',null,c.label+(sort.key===c.key?(sort.dir==='asc'?' ↑':' ↓'):''));b.type='button';
     if(sort.key===c.key)th.setAttribute('aria-sort',sort.dir==='asc'?'ascending':'descending');
+    if(c.key==='price')th.title='Valor pago na venda, com os Adicionais dela (pelo preço daquele dia)';
     if(c.key==='pve')th.title='PvE sem adicionais, no Nv 100 e na última evolução (o mesmo número do jogo)';
     if(c.key==='closeness')th.title='O quanto esta venda se parece com o seu Pokémon em nível, Poder, Nota e data (100% = idêntica e vendida hoje)';
     b.onclick=()=>{sort=sort.key===c.key?{key:c.key,dir:sort.dir==='asc'?'desc':'asc'}:{key:c.key,dir:'desc'};draw();};th.append(b);return th;}),obsHead);
@@ -219,11 +220,16 @@
   chart.append(svg('rect',{class:'frame',x:L,y:T,width:R-L,height:B-T}));
   chart.append(svg('polygon',{class:'band',points:[...pts.map(p=>`${X(p.level)},${Y(p.high)}`),...[...pts].reverse().map(p=>`${X(p.level)},${Y(p.low)}`)].join(' ')}));
   chart.append(svg('polyline',{class:'line',points:pts.map(p=>`${X(p.level)},${Y(p.median)}`).join(' ')}));
-  const now=pts.find(p=>p.current),labels=new Set([pts[0].level,100,1000,pts.at(-1).level].filter(l=>pts.some(p=>p.level===l)&&Math.abs(X(l)-X(now.level))>=28));
-  const anchor=lv=>lv===pts[0].level?'start':lv===pts.at(-1).level?'end':'middle';
+  const now=pts.find(p=>p.current),drop=pts.find(p=>p.drop);
+  // Rótulos do eixo sem sobrepor (04/11/2026): o nível atual e o da hunt sempre; 100, 1.000 e o último só se couberem.
+  // Largura estimada pelo número de letras (11 px); perto da borda o texto alinha para dentro.
+  const placed=[],label=(p,text,cls)=>{const w=text.length*6.2,x=X(p.level),a=x-w/2<L-8?'start':x+w/2>W-2?'end':'middle',x0=a==='start'?x:a==='end'?x-w:x-w/2;
+   if(placed.some(([b0,b1])=>x0<b1+6&&x0+w>b0-6))return;placed.push([x0,x0+w]);chart.append(svg('text',{class:cls||'',x,y:B+14,'text-anchor':a},text));};
   for(const p of pts){const dot=svg('circle',{class:p.current?'me':'pt',cx:X(p.level),cy:Y(p.median),r:p.current?6:3.5});dot.append(svg('title',null,`Nv ${gems(p.level)}: Pokémon ${gems(p.median)} Gemas sem Adicionais (${gems(p.low)} a ${gems(p.high)})`));chart.append(dot);
-   if(labels.has(p.level)&&!p.current)chart.append(svg('text',{x:X(p.level),y:B+14,'text-anchor':anchor(p.level)},p.drop?`Nv ${gems(p.level)} (hunt)`:gems(p.level)));}
-  chart.append(svg('text',{class:'minelabel',x:X(now.level),y:B+14,'text-anchor':anchor(now.level)},'Nv '+gems(now.level)),svg('text',{x:L-6,y:B,'text-anchor':'end'},'0'),svg('text',{x:L-6,y:T+8,'text-anchor':'end'},gems(Math.round(top))));
+  }
+  label(now,'Nv '+gems(now.level),'minelabel');if(drop&&!drop.current)label(drop,`Nv ${gems(drop.level)} (hunt)`);
+  for(const lv of [100,1000,pts.at(-1).level,pts[0].level]){const p=pts.find(x=>x.level===lv);if(p&&!p.current&&!p.drop)label(p,gems(lv));}
+  chart.append(svg('text',{x:L-6,y:B,'text-anchor':'end'},'0'),svg('text',{x:L-6,y:T+8,'text-anchor':'end'},gems(Math.round(top))));
   chart.append(svg('text',{class:'axisname',x:(L+R)/2,y:H-8,'text-anchor':'middle'},'Nível →'),svg('text',{class:'axisname',x:14,y:(T+B)/2,'text-anchor':'middle',transform:`rotate(-90 14 ${(T+B)/2})`},'Pokémon (Gemas) →'));
   const up=pts.filter(p=>p.level>now.level&&[200,500,1000,2000,5000,10000].includes(p.level)).slice(0,3);
   const nodes=[el('h4',null,'Preço por nível'),chart,el('p','small muted',`Valor do Pokémon sem Adicionais com a mesma ficha em outros níveis, pelo quanto o mercado paga a mais por nível (o mesmo cálculo do Preço justo)${add>0?`; os Adicionais somam ${gems(add)} Gemas em qualquer nível`:''}.${Number.isFinite(r.dropLevel)?` Começa no Nv ${gems(r.dropLevel)}, o nível em que ${r.name} vem da hunt.`:''}${r.dropLevel<100?' Até o Nv 100 o nível quase não muda o preço.':''} A curva é a mesma para todas as espécies: em algumas famílias o nível pesa menos.`)];
@@ -237,21 +243,20 @@
   const c=r.confidence;
   if(r.available&&c){if(c.percent<20)item('Confiança baixa','poucas vendas parecidas com este Pokémon. Use o preço só como referência.','warn');
    else if(c.percent<60)item('O que baixou a confiança',`${REASONS[c.lowest]}.`);}
-  if(r.available){
-   const share=Math.round((r.weight||0)*100),bits=[];
-   bits.push(share>=50?`vem principalmente das vendas de ${r.family} (${share}% do peso).`:`há poucas vendas de ${r.family} parecidas com este Pokémon, então ${100-share}% do peso vem de outras espécies, primeiro as com os mesmos tipos.`);
-   const comps=(r.comps||[]).filter(x=>x.share>0),W=comps.reduce((t,x)=>t+x.share,0);
-   if(W>0){
-    const lv=Math.exp(comps.reduce((t,x)=>t+x.share*Math.log(x.level),0)/W),ratio=r.level/lv;
-    if(ratio>=1.5||ratio<=1/1.5)bits.push(`As vendas de ${r.family} que mais pesaram são de Nv ${gems(Math.round(lv))} em média e este é Nv ${gems(r.level)}: o preço foi ajustado para ${ratio<1?'baixo':'cima'} pelo nível.`);
-    const nn=comps.filter(x=>Number.isFinite(x.nota)),NW=nn.reduce((t,x)=>t+x.share,0);
-    const mine=Number.isFinite(r.notaPreco)?r.notaPreco:r.nota;
-    if(NW>0&&Number.isFinite(mine)){const nota=nn.reduce((t,x)=>t+x.share*x.nota,0)/NW;
-     if(Math.abs(mine-nota)>=.15)bits.push(`Elas têm Nota ${METRICS.nota.fmt(nota)} em média e este tem ${METRICS.nota.fmt(mine)}: o preço foi ajustado para ${mine<nota?'baixo':'cima'} pela Nota.`);}
-    if(comps.some(x=>x.price>x.base+1))bits.push(`Na tabela de vendas, as Gemas são o valor pago, com os Adicionais daquela venda; este Pokémon sem Adicionais vale ${gems(r.base)}.`);
-   }
-   const b=precos.correcao?.bias;if(Math.abs(b||0)>=.02)bits.push(`Já tem uma correção de ${pct(Math.abs(Math.exp(-b)-1))}% para ${b>0?'baixo':'cima'}: na última semana o cálculo vinha saindo ${b>0?'acima':'abaixo'} do valor pago.`);
-   item('Preço',bits.join(' '));
+  // Preço (revisão de 04/11/2026): o valor pago, sem Adicionais, nas vendas da família que mais pesaram (média
+  // ponderada pelo peso, em escala log), com o nível e a Nota delas, contra os deste Pokémon. "Por causa do nível / da
+  // Nota" só quando a diferença (nível 1,5× ou Nota 0,15) puxa para o mesmo lado do resultado. Peso da família e
+  // correção do viés ficam na auditoria; o que a coluna Gemas mostra fica no título dela.
+  const comps=r.available?(r.comps||[]).filter(x=>x.share>0&&x.base>0):[],W=comps.reduce((t,x)=>t+x.share,0);
+  if(W>0){
+   const avg=f=>Math.exp(comps.reduce((t,x)=>t+x.share*Math.log(f(x)),0)/W),paid=Math.round(avg(x=>x.base)),lv=Math.round(avg(x=>x.level));
+   const nn=comps.filter(x=>Number.isFinite(x.nota)),NW=nn.reduce((t,x)=>t+x.share,0),nota=NW>0?nn.reduce((t,x)=>t+x.share*x.nota,0)/NW:null;
+   const mine=Number.isFinite(r.notaPreco)?r.notaPreco:Number.isFinite(r.nota)?r.nota:null,hasNota=nota!=null&&mine!=null;
+   const side=r.base>paid*1.05?1:r.base<paid/1.05?-1:0,lvSide=r.level>=lv*1.5?1:r.level<=lv/1.5?-1:0,notaSide=hasNota&&Math.abs(mine-nota)>=.15?Math.sign(mine-nota):0;
+   const causes=[...(side&&lvSide===side?['do nível']:[]),...(side&&notaSide===side?['da Nota']:[])];
+   const theirs=`com Nv ${gems(lv)}${hasNota?` e Nota ${METRICS.nota.fmt(nota)}`:''}`,ours=`Nv ${gems(r.level)}${hasNota?` com Nota ${METRICS.nota.fmt(mine)}`:''}`;
+   const where=side>0?'fica acima':side<0?'fica abaixo':'fica parecido';
+   item('Preço',`as vendas de ${r.family} que mais pesaram saíram, em média, por ${gems(paid)} Gemas sem Adicionais, ${theirs}. Este é ${ours} e${causes.length?`, por causa ${causes.join(' e ')},`:''} ${where}: ${gems(r.base)} Gemas.`);
   }
   if(r.missing?.length)item('Adicionais sem cotação',`${r.missing.join(', ')} ficou fora do total.`,'warn');
   if(r.refined)item('Refino','não entra no preço: o Pokémon é comparado como se não tivesse refino.');
