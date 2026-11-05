@@ -5,13 +5,13 @@
  const NOVIDADES=[
   {data:'04/11/2026, 12h14',itens:[
    'Os motivos da confiança não dizem mais "menos de 1 venda": quando não há venda parecida, o texto diz isso, e com uma venda só diz "equivale a uma venda só".',
-   'Textos de confiança e de preço revistos para família sem vendas ou com 1 venda, comparação com uma venda só, preço de 1 Gema e mais de um Adicional sem cotação.',
+   'Textos de confiança e de preço revistos para cadeia evolutiva sem vendas ou com 1 venda, comparação com uma venda só, preço de 1 Gema e mais de um Adicional sem cotação.',
    'Quando o nível e a Nota não explicam a diferença de preço, "Como chegamos ao preço" diz que ela vem do Poder e das outras vendas da comparação.']},
   {data:'04/11/2026, 11h46',itens:[
    'Novo layout: a ficha e o preço lado a lado, e embaixo os dois gráficos lado a lado, a tabela de vendas e, por último, a auditoria.',
    'Embaixo da confiança, "Por que a confiança é baixa" lista cada motivo numa linha, e "Como chegamos ao preço" compara este Pokémon com as vendas mais parecidas.',
-   'Os motivos da confiança dizem quantas vendas comparáveis existem de fato: a família pode ter muitas vendas e quase nenhuma parecida em Poder e Nota.',
-   'Quando quase todo o preço vem de outras espécies, a tabela de vendas da família avisa.',
+   'Os motivos da confiança dizem quantas vendas comparáveis existem de fato: a cadeia evolutiva pode ter muitas vendas e quase nenhuma parecida em Poder e Nota.',
+   'Quando quase todo o preço vem de outras espécies, a tabela de vendas da cadeia evolutiva avisa.',
    'No gráfico de vendas, a linha amarela é a Nota ou o Poder deste Pokémon, conforme o eixo escolhido.']},
   {data:'04/11/2026, 11h04',itens:[
    'Botão "Novidades" no topo da página, com o que mudou em cada versão do site.']},
@@ -19,7 +19,7 @@
    'O preço passa a usar a Nota junto com o Poder e o nível, e as vendas com Nota parecida pesam mais. No teste com vendas passadas, 35 em cada 100 saíram a até 25% do Preço justo (eram 33).',
    'Novo gráfico "Preço por nível": quanto o mesmo Pokémon valeria em outros níveis, a partir do nível em que ele vem da hunt. Ajuda a decidir se vale upar antes de vender.',
    'Embaixo da confiança, tópicos explicam o que baixou a confiança e comparam este Pokémon com as vendas que mais pesaram: quanto elas pagaram em média, sem Adicionais, e com qual nível e Nota.',
-   'O gráfico de vendas abre em "Por nota" e diz quais formas da família entraram no cálculo (por exemplo, Larvitar, Pupitar e Tyranitar).',
+   'O gráfico de vendas abre em "Por nota" e diz quais formas da cadeia evolutiva entraram no cálculo (por exemplo, Larvitar, Pupitar e Tyranitar).',
    'Na tabela de vendas, a coluna Observação mostra só o Adicional incerto, e o título da coluna Gemas explica que é o valor pago, com os Adicionais da venda.']},
   {data:'04/11/2026, 0h12',itens:[
    'Vendas com Adicional incerto entram sem desconto, para o preço errar para cima e não para baixo. O risco aparece na confiança.',
@@ -28,7 +28,7 @@
    'Tabela de vendas com a coluna Observação e o "PvE sem adicionais (Nv 100)" ao lado da sprite.']},
   {data:'03/11/2026',itens:[
    'Preço pelas vendas mais parecidas com o seu Pokémon, com a confiança do resultado e uma auditoria de como foi calculado.',
-   'Gráfico com as vendas da família e mais vendas no histórico.',
+   'Gráfico com as vendas da cadeia evolutiva e mais vendas no histórico.',
    'Tipos com cor, etiquetas dos Adicionais e gráficos de quão bem o cálculo acertou vendas passadas.',
    'Primeira versão do site.']},
  ];

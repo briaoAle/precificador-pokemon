@@ -24,7 +24,7 @@ conta de ninguém.
   mediana das leituras do menor preço anunciado no mercado naquele dia. O Pokémon precificado leva os Adicionais pelo
   preço mais recente; de cada venda passada, eles são descontados pelo preço do dia da venda. O que sobra
   é comparado pelo **PvE da última evolução no Nv 100**: uma curva de todo o mercado (separada por shiny e por nível
-  parecido) misturada com as vendas da mesma família, que pesam mais quanto mais vendas houver.
+  parecido) misturada com as vendas da mesma cadeia evolutiva, que pesam mais quanto mais vendas houver.
 - Vender rápido, Preço justo e Esperar são o 1º quartil, a mediana e o 3º quartil.
 - O refino não entra no preço.
 
