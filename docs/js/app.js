@@ -32,9 +32,9 @@
   if(box.getBoundingClientRect().top>innerHeight*.6)box.scrollIntoView({block:'start'});}
  function error(text){show([el('p','error',text)]);}
 
- // Dispersão das vendas reais da cadeia evolutiva deste Pokémon (mesmo shiny, 30 dias): preço sem os Adicionais (escala log) ×
+ // Dispersão das vendas reais da cadeia evolutiva deste Pokémon (mesmo shiny, 30 dias): preço sem os Adicionais (escala log, no eixo vertical) ×
  // Poder (PvE, o que o cálculo compara: IV, qualidade e potência, no Nv 100, escala log) ou × Nota da Calculadora (0 a 10
- // dentro da espécie, escala linear), escolhido no seletor. As linhas cruzam neste Pokémon: Preço justo e o valor dele.
+ // dentro da espécie, escala linear), no eixo horizontal, escolhido no seletor. As linhas cruzam neste Pokémon: Preço justo e o valor dele.
  // Faixa verde = Vender rápido–Esperar. Nada projetado: só o que vendeu.
  // SEM filtro de nível (decisão de 03/11/2026): entram vendas de todos os níveis da cadeia evolutiva; o eixo é o PvE ou a nota.
  const SVG='http://www.w3.org/2000/svg';
@@ -47,49 +47,51 @@
  function scatter(r,all,m,lo,hi,grouped){
   const who=`${r.family}${r.shiny?' shiny':''}`,mine=m.of(r),known=all.filter(x=>Number.isFinite(m.of(x))),sales=known.filter(x=>m.of(x)>=m.from),hidden=known.length-sales.length;
   if(sales.length<3)return [el('p','small muted',`Poucas vendas de ${who} com ${m.axis.toLowerCase()} para mostrar num gráfico.`)];
-  // Eixos (03/11/2026): o eixo horizontal fica colado embaixo, em 0 (Poder) ou 3,5 (Nota): vendas com nota abaixo de
-  // 3,5 ficam fora (contadas no texto); sobe até a venda mais alta; o eixo vertical passa no meio, no Preço justo
+  // Eixos (invertidos em 05/11/2026): o eixo vertical fica colado à esquerda, em 0 (Poder) ou 3,5 (Nota): vendas com nota abaixo de
+  // 3,5 ficam fora (contadas no texto); vai até a venda mais alta; o eixo horizontal passa no meio, no Preço justo
   // (preço em escala log, mesma distância dos dois lados). A linha amarela tracejada é a Nota ou o Poder deste Pokémon (conforme o eixo), onde cair.
-  const prices=sales.map(x=>x.base),lb=Math.log(r.base),devs=prices.map(v=>Math.abs(Math.log(v)-lb)).sort((a,b)=>a-b),dx=1.06*Math.max(.1,devs[Math.floor((devs.length-1)*.98)]||0,Math.abs(Math.log(lo)-lb),Math.abs(Math.log(hi)-lb));
+  const prices=sales.map(x=>x.base),lb=Math.log(r.base),devs=prices.map(v=>Math.abs(Math.log(v)-lb)).sort((a,b)=>a-b),dp=1.06*Math.max(.1,devs[Math.floor((devs.length-1)*.98)]||0,Math.abs(Math.log(lo)-lb),Math.abs(Math.log(hi)-lb));
   // O eixo do preço cobre 98% das vendas (centrado no Preço justo): as mais extremas ficam na borda, em círculo vazado.
-  const outside=prices.filter(v=>Math.abs(Math.log(v)-lb)>dx).length;
-  const vals=[...sales.map(m.of),mine],c0=Math.min(m.from,mine),top=Math.max(...vals),x0=lb-dx,x1=lb+dx,y0=c0,y1=top+(top-c0)*.06||c0+1;
-  const W=340,H=222,L=50,R=334,T=10,B=176,X=v=>L+(Math.min(x1,Math.max(x0,Math.log(v)))-x0)/(x1-x0)*(R-L),Y=v=>B-(v-y0)/(y1-y0)*(B-T);
-  const chart=svg('svg',{viewBox:`0 0 ${W} ${H}`,class:'scatter'+(sales.length>150?' dense':''),role:'img'}),cx=X(r.base),cy=Y(mine),ay=Y(c0);
-  const xl=Math.max(L,X(lo)),xh=Math.min(R,X(hi));
-  chart.append(svg('rect',{class:'band',x:xl,y:T,width:Math.max(1,xh-xl),height:B-T}),svg('rect',{class:'frame',x:L,y:T,width:R-L,height:B-T}));
-  chart.append(svg('line',{class:'axisline',x1:L,x2:R,y1:ay,y2:ay}),svg('line',{class:'axisline',x1:cx,x2:cx,y1:T,y2:B}));
+  const outside=prices.filter(v=>Math.abs(Math.log(v)-lb)>dp).length;
+  const vals=[...sales.map(m.of),mine],c0=Math.min(m.from,mine),top=Math.max(...vals),p0=lb-dp,p1=lb+dp,v0=c0,v1=top+(top-c0)*.06||c0+1;
+  const W=340,H=222,L=78,R=334,T=10,B=176,X=v=>L+(v-v0)/(v1-v0)*(R-L),Y=v=>B-(Math.min(p1,Math.max(p0,Math.log(v)))-p0)/(p1-p0)*(B-T);
+  const chart=svg('svg',{viewBox:`0 0 ${W} ${H}`,class:'scatter'+(sales.length>150?' dense':''),role:'img'}),cx=X(mine),cy=Y(r.base),ax=X(c0);
+  const yh=Math.max(T,Y(hi)),yl=Math.min(B,Y(lo));
+  chart.append(svg('rect',{class:'band',x:L,y:yh,width:R-L,height:Math.max(1,yl-yh)}),svg('rect',{class:'frame',x:L,y:T,width:R-L,height:B-T}));
+  chart.append(svg('line',{class:'axisline',x1:ax,x2:ax,y1:T,y2:B}),svg('line',{class:'axisline',x1:L,x2:R,y1:cy,y2:cy}));
   // "Agrupar": grade de 24 × 14 quadrados; a cor fica mais forte com mais vendas no quadrado (raiz da contagem) e a
   // cor é verde quando o meio do quadrado está entre Vender rápido e Esperar. Cada quadrado resume as suas vendas.
   if(grouped){const CW=(R-L)/24,CH=(B-T)/14,cells=new Map();
-   for(const s of sales){const i=Math.min(23,Math.max(0,Math.floor((X(s.base)-L)/CW))),j=Math.min(13,Math.max(0,Math.floor((B-Y(m.of(s)))/CH))),k=i+':'+j;
+   for(const s of sales){const i=Math.min(23,Math.max(0,Math.floor((X(m.of(s))-L)/CW))),j=Math.min(13,Math.max(0,Math.floor((B-Y(s.base))/CH))),k=i+':'+j;
     if(!cells.has(k))cells.set(k,{i,j,list:[]});cells.get(k).list.push(s);}
    const most=Math.max(...[...cells.values()].map(c=>c.list.length)),mid=a=>{const v=[...a].sort((x,y)=>x-y);return v[v.length>>1];};
-   for(const c of cells.values()){const n=c.list.length,ps=c.list.map(s=>s.base),vs=c.list.map(m.of),price=Math.exp(x0+(c.i+.5)*CW/(R-L)*(x1-x0));
+   for(const c of cells.values()){const n=c.list.length,ps=c.list.map(s=>s.base),vs=c.list.map(m.of),price=Math.exp(p0+(c.j+.5)*CH/(B-T)*(p1-p0));
     const cell=svg('rect',{class:'cell'+(price>=lo&&price<=hi?' in':''),x:L+c.i*CW+.5,y:B-(c.j+1)*CH+.5,width:CW-1,height:CH-1,rx:1.5,'fill-opacity':(.2+.8*Math.sqrt(n/most)).toFixed(2)});
     cell.append(svg('title',{},`${n} ${n===1?'venda':'vendas'} · ${gems(Math.min(...ps))} a ${gems(Math.max(...ps))} Gemas (mediana ${gems(mid(ps))}) · ${m.axis} ${m.fmt(Math.min(...vs))} a ${m.fmt(Math.max(...vs))}`));chart.append(cell);}}
-  else for(const s of [...sales].sort((a,b)=>a.at-b.at)){const dot=svg('circle',{class:'sale'+(s.base>=lo&&s.base<=hi?' in':'')+(Math.abs(Math.log(s.base)-lb)>dx?' over':''),cx:X(s.base),cy:Y(m.of(s)),r:4});
+  else for(const s of [...sales].sort((a,b)=>a.at-b.at)){const dot=svg('circle',{class:'sale'+(s.base>=lo&&s.base<=hi?' in':'')+(Math.abs(Math.log(s.base)-lb)>dp?' over':''),cx:X(m.of(s)),cy:Y(s.base),r:4});
    dot.append(svg('title',{},`${gems(s.base)} Gemas sem Adicionais · PvE ${gems(s.pve)}${Number.isFinite(s.nota)?' · nota '+METRICS.nota.fmt(s.nota):''} · Nv ${gems(s.level)} · ${when(s.at)}`));chart.append(dot);}
   // Por cima dos pontos: tracejado amarelo = o valor deste Pokémon; o ponto amarelo fica no Preço justo dele.
-  chart.append(svg('line',{class:'mine',x1:L,x2:R,y1:cy,y2:cy}));
+  chart.append(svg('line',{class:'mine',x1:cx,x2:cx,y1:T,y2:B}));
   const me=svg('circle',{class:'me',cx,cy,r:6});me.append(svg('title',{},`Este Pokémon: ${m.axis} ${m.fmt(mine)} · Preço justo ${gems(r.base)} Gemas`));chart.append(me);
-  const ax=B+14,mid=(T+B)/2;
-  chart.append(svg('text',{class:'axis',x:L,y:ax},gems(Math.exp(x0))),svg('text',{class:'axis',x:R,y:ax,'text-anchor':'end'},gems(Math.exp(x1))),
-   svg('text',{class:'fairlabel',x:cx,y:ax,'text-anchor':'middle'},`Preço justo ${gems(r.base)}`),
-   svg('text',{class:'axis',x:L-4,y:T+8,'text-anchor':'end'},m.fmt(y1)),svg('text',{class:'minelabel',x:L-4,y:cy+4,'text-anchor':'end'},m.fmt(mine)),
-   svg('text',{class:'axisname',x:(L+R)/2,y:H-4,'text-anchor':'middle'},'Preço (Gemas, sem Adicionais) →'),
-   svg('text',{class:'axisname',x:12,y:mid,'text-anchor':'middle',transform:`rotate(-90 12 ${mid})`},m.axis+' →'));
-  if(B-cy>=12)chart.append(svg('text',{class:'axis',x:L-4,y:B,'text-anchor':'end'},m.fmt(y0)));
+  // Rótulos: preço à esquerda (Preço justo em duas linhas, no meio); embaixo, as pontas do eixo somem se encostarem no valor amarelo.
+  const under=B+14,mid=(T+B)/2,tw=t=>t.length*6,mineText=m.fmt(mine),lowText=m.fmt(v0),highText=m.fmt(v1);
+  chart.append(svg('text',{class:'axis',x:L-4,y:T+8,'text-anchor':'end'},gems(Math.exp(p1))),svg('text',{class:'axis',x:L-4,y:B,'text-anchor':'end'},gems(Math.exp(p0))),
+   svg('text',{class:'fairlabel',x:L-4,y:cy-2,'text-anchor':'end'},'Preço justo'),svg('text',{class:'fairlabel',x:L-4,y:cy+10,'text-anchor':'end'},gems(r.base)),
+   svg('text',{class:'minelabel',x:Math.min(W-tw(mineText)/2,cx),y:under,'text-anchor':'middle'},mineText),
+   svg('text',{class:'axisname',x:(L+R)/2,y:H-4,'text-anchor':'middle'},m.axis+' →'),
+   svg('text',{class:'axisname',x:12,y:mid,'text-anchor':'middle',transform:`rotate(-90 12 ${mid})`},'Preço (Gemas, sem Adicionais) →'));
+  if(cx-L>=tw(lowText)+tw(mineText)/2+6)chart.append(svg('text',{class:'axis',x:L,y:under},lowText));
+  if(R-cx>=tw(highText)+tw(mineText)/2+6)chart.append(svg('text',{class:'axis',x:R,y:under,'text-anchor':'end'},highText));
   const above=sales.filter(s=>m.of(s)>mine),cheapAbove=above.filter(s=>s.base<r.base).length,below=sales.filter(s=>m.of(s)<mine),dearBelow=below.filter(s=>s.base>r.base).length;
   const inside=prices.filter(v=>v>=lo&&v<=hi).length;
   chart.setAttribute('aria-label',`${sales.length} vendas de ${who} por preço e ${m.axis}; ${above.length} ${m.more} que este, ${cheapAbove} delas mais baratas que o Preço justo`);
-  return [chart,el('p','small',`${grouped?"Cada quadrado junta as vendas da cadeia evolutiva daquela área (cor mais forte, mais vendas; passe o mouse para ver quantas), de qualquer nível (no preço, as de nível parecido pesam mais)":"Cada ponto é uma venda da cadeia evolutiva, de qualquer nível (no preço, as de nível parecido pesam mais)"}: mais à direita, mais cara; mais acima, ${m.up}. A linha branca vertical é o Preço justo; a linha amarela marca ${m.mine} (ponto amarelo): os pontos perto dela têm ${m.near}. Das ${sales.length}, ${above.length} eram ${m.more} (${cheapAbove} delas saíram mais baratas que o Preço justo) e ${below.length} ${m.less} (${dearBelow} saíram mais caras). ${inside} ficaram entre Vender rápido e Esperar (faixa verde). Preços sem os Adicionais.${outside?` ${outside} ${outside===1?'venda muito longe do Preço justo aparece':'vendas muito longe do Preço justo aparecem'} na borda, em círculo vazado.`:''}${hidden?` ${hidden} ${hidden===1?"venda":"vendas"} com nota abaixo de 3,5 ${hidden===1?"fica":"ficam"} fora do gráfico.`:""}`)];
+  return [chart,el('p','small',`${grouped?"Cada quadrado junta as vendas da cadeia evolutiva daquela área (cor mais forte, mais vendas; passe o mouse para ver quantas), de qualquer nível (no preço, as de nível parecido pesam mais)":"Cada ponto é uma venda da cadeia evolutiva, de qualquer nível (no preço, as de nível parecido pesam mais)"}: mais acima, mais cara; mais à direita, ${m.up}. A linha branca horizontal é o Preço justo; a linha amarela marca ${m.mine} (ponto amarelo): os pontos perto dela têm ${m.near}. Das ${sales.length}, ${above.length} eram ${m.more} (${cheapAbove} delas saíram mais baratas que o Preço justo) e ${below.length} ${m.less} (${dearBelow} saíram mais caras). ${inside} ficaram entre Vender rápido e Esperar (faixa verde). Preços sem os Adicionais.${outside?` ${outside} ${outside===1?'venda muito longe do Preço justo aparece':'vendas muito longe do Preço justo aparecem'} na borda, em círculo vazado.`:''}${hidden?` ${hidden} ${hidden===1?"venda":"vendas"} com nota abaixo de 3,5 ${hidden===1?"fica":"ficam"} fora do gráfico.`:""}`)];
  }
  function familyChart(r){
   const all=rows.filter(x=>x.family===r.familyId&&x.shiny===r.shiny),who=`${r.family}${r.shiny?' shiny':''}`;
   if(all.length<3)return null;
   const addons=r.median-r.base,lo=Math.max(1,r.low-addons),hi=Math.max(lo,r.high-addons);
-  const box=el('div'),bar=el('div','switch');bar.setAttribute('role','group');bar.setAttribute('aria-label','Eixo vertical do gráfico');
+  const box=el('div'),bar=el('div','switch');bar.setAttribute('role','group');bar.setAttribute('aria-label','Eixo horizontal do gráfico');
   const buttons={},group=el('button','toggle','Agrupar');group.type='button';group.title='Juntar as vendas em quadrados: a cor mostra quantas há em cada um';
   group.addEventListener('click',()=>{grouped=!grouped;draw(chartMode);});
   const draw=mode=>{chartMode=mode;for(const [k,b]of Object.entries(buttons))b.setAttribute('aria-pressed',String(k===mode));group.setAttribute("aria-pressed",String(grouped));box.replaceChildren(...scatter(r,all,METRICS[mode],lo,hi,grouped));};

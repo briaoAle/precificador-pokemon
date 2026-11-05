@@ -3,6 +3,8 @@
 (function(){
  'use strict';
  const NOVIDADES=[
+  {data:'05/11/2026, 9h21',itens:[
+   'No gráfico de vendas, os eixos trocaram de lugar: o preço fica na vertical e a Nota ou o Poder na horizontal.']},
   {data:'04/11/2026, 12h14',itens:[
    'Os motivos da confiança não dizem mais "menos de 1 venda": quando não há venda parecida, o texto diz isso, e com uma venda só diz "equivale a uma venda só".',
    'Textos de confiança e de preço revistos para cadeia evolutiva sem vendas ou com 1 venda, comparação com uma venda só, preço de 1 Gema e mais de um Adicional sem cotação.',
