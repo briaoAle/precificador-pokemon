@@ -66,6 +66,10 @@ button:disabled{opacity:.6;cursor:default}
 .price b{font-size:18px;font-variant-numeric:tabular-nums}
 .price.main{border-color:var(--ok)}.price.main b{color:var(--ok);font-size:24px}
 @media (max-width:420px){.price b{font-size:15px}.price.main b{font-size:19px}.price{padding:6px}}
+.ruler{align-items:end;margin:0 0 8px}.ruler .price{background:none;border:0;padding:0}.ruler .price.main{text-align:center}.ruler .price:last-child{text-align:right}
+.track{position:relative;height:10px;margin:0 0 6px;border-radius:5px;background:linear-gradient(90deg,var(--line),var(--ok) 50%,var(--line))}.track .mark{position:absolute;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--ok);border:3px solid var(--surface)}
+.rulerlegend{display:flex;justify-content:space-between;gap:16px;margin:0 0 12px}.rulerlegend span:last-child{text-align:right}
+.example{opacity:.75;margin:12px 0}.example .mark{left:41%}.examplelist{margin:0;padding-left:20px}
 .parts{margin:0 0 12px;padding:0;list-style:none}
 .parts li{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--line)}
 .parts li b{font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -126,3 +130,12 @@ table.sales+.toggle,div>.toggle{margin-top:8px}
 .sheetstats{margin:4px 0;font-variant-numeric:tabular-nums;color:var(--text)}
 input.unit{width:5.5em;padding:2px 4px;font:inherit;color:var(--text);background:var(--raised);border:1px solid var(--line);border-radius:4px;text-align:right}button.link{border:0;background:none;padding:0;color:var(--muted);text-decoration:underline;font-size:12px;font-weight:400;cursor:pointer}
 th.obs{color:var(--muted);font-weight:600;font-size:13px;white-space:nowrap}td.obs{font-size:12px;color:var(--muted)}td.obs .warn{color:var(--bad)}
+/* Dados da ficha e Adicionais enxutos (06/11/2026). */
+.sheetstats{display:flex;flex-wrap:wrap;gap:2px 12px;margin:4px 0}.sheetstats span{white-space:nowrap}.sheetstats i{font-style:normal;color:var(--muted)}.sheetstats b{font-weight:600;font-variant-numeric:tabular-nums}
+.parts{font-size:13px}.parts li{align-items:baseline;padding:2px 0;border-bottom:0}.parts li.sub{padding-left:0}.parts li b{font-weight:600}
+.addoncalc{margin-left:8px;color:var(--muted);font-variant-numeric:tabular-nums}
+input.unit{width:48px;height:auto;margin:0;padding:0 2px;font:inherit;color:var(--text);text-align:right;background:none;border:0;border-bottom:1px dashed var(--muted);border-radius:0;appearance:textfield;-moz-appearance:textfield}
+input.unit::-webkit-inner-spin-button,input.unit::-webkit-outer-spin-button{appearance:none;-webkit-appearance:none;margin:0}
+input.unit:hover,input.unit:focus{border-bottom-style:solid;border-bottom-color:var(--text)}
+/* Apoio, ao lado de Novidades, no mesmo visual do botão (o link empurra os dois para a direita). */
+.newsbtn.support{margin-left:auto;background:var(--raised);border:1px solid var(--line);border-radius:6px;font-weight:600;text-decoration:none;white-space:nowrap}.newsbtn.support:hover{border-color:var(--focus)}

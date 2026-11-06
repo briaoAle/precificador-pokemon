@@ -4,30 +4,30 @@
  'use strict';
  const NOVIDADES=[
   {data:'06/11/2026',itens:[
+   'Botão "Apoie o projeto" no topo da página: uma doação opcional, por um serviço de Pix externo. O site continua gratuito.',
+   'Vender rápido, Preço justo e Esperar agora aparecem em uma régua, que diz quantas vendas costumam sair fora de cada ponta.',
+   'A tabela de vendas ganhou a coluna Peso: quanto cada venda conta de fato no preço.',
+   'Os textos passam a usar um só nome, PvE, para o Poder no PvE.',
    'A explicação do preço foi reescrita em um só bloco, mais curta e com a parte técnica no final.',
    'Os textos falam da cadeia do Pokémon colado e dizem quais formas entraram na conta, incluindo Mega. A tabela e o gráfico mostram a forma de cada venda.',
    'A ficha copiada com o jogo em inglês agora funciona.']},
-  {data:'05/11/2026, 9h21',itens:[
+  {data:'05/11/2026',itens:[
    'No gráfico de vendas, os eixos trocaram de lugar: o preço fica na vertical e a Nota ou o Poder na horizontal.']},
-  {data:'04/11/2026, 12h14',itens:[
+  {data:'04/11/2026',itens:[
    'Os motivos da confiança não dizem mais "menos de 1 venda": quando não há venda parecida, o texto diz isso, e com uma venda só diz "equivale a uma venda só".',
    'Textos de confiança e de preço revistos para cadeia evolutiva sem vendas ou com 1 venda, comparação com uma venda só, preço de 1 Gema e mais de um Adicional sem cotação.',
-   'Quando o nível e a Nota não explicam a diferença de preço, "Como chegamos ao preço" diz que ela vem do Poder e das outras vendas da comparação.']},
-  {data:'04/11/2026, 11h46',itens:[
+   'Quando o nível e a Nota não explicam a diferença de preço, "Como chegamos ao preço" diz que ela vem do Poder e das outras vendas da comparação.',
    'Novo layout: a ficha e o preço lado a lado, e embaixo os dois gráficos lado a lado, a tabela de vendas e, por último, a auditoria.',
    'Embaixo da confiança, "Por que a confiança é baixa" lista cada motivo numa linha, e "Como chegamos ao preço" compara este Pokémon com as vendas mais parecidas.',
    'Os motivos da confiança dizem quantas vendas comparáveis existem de fato: a cadeia evolutiva pode ter muitas vendas e quase nenhuma parecida em Poder e Nota.',
    'Quando quase todo o preço vem de outras espécies, a tabela de vendas da cadeia evolutiva avisa.',
-   'No gráfico de vendas, a linha amarela é a Nota ou o Poder deste Pokémon, conforme o eixo escolhido.']},
-  {data:'04/11/2026, 11h04',itens:[
-   'Botão "Novidades" no topo da página, com o que mudou em cada versão do site.']},
-  {data:'04/11/2026, 10h28',itens:[
+   'No gráfico de vendas, a linha amarela é a Nota ou o Poder deste Pokémon, conforme o eixo escolhido.',
+   'Botão "Novidades" no topo da página, com o que mudou em cada versão do site.',
    'O preço passa a usar a Nota junto com o Poder e o nível, e as vendas com Nota parecida pesam mais. No teste com vendas passadas, 35 em cada 100 saíram a até 25% do Preço justo (eram 33).',
    'Novo gráfico "Preço por nível": quanto o mesmo Pokémon valeria em outros níveis, a partir do nível em que ele vem da hunt. Ajuda a decidir se vale upar antes de vender.',
    'Embaixo da confiança, tópicos explicam o que baixou a confiança e comparam este Pokémon com as vendas que mais pesaram: quanto elas pagaram em média, sem Adicionais, e com qual nível e Nota.',
    'O gráfico de vendas abre em "Por nota" e diz quais formas da cadeia evolutiva entraram no cálculo (por exemplo, Larvitar, Pupitar e Tyranitar).',
-   'Na tabela de vendas, a coluna Observação mostra só o Adicional incerto, e o título da coluna Gemas explica que é o valor pago, com os Adicionais da venda.']},
-  {data:'04/11/2026, 0h12',itens:[
+   'Na tabela de vendas, a coluna Observação mostra só o Adicional incerto, e o título da coluna Gemas explica que é o valor pago, com os Adicionais da venda.',
    'Vendas com Adicional incerto entram sem desconto, para o preço errar para cima e não para baixo. O risco aparece na confiança.',
    'Pokémon refinados entram no cálculo sem o refino e com peso cheio.',
    'Dá para trocar o preço por unidade dos Adicionais quando a cotação do dia estiver defasada. O valor fica guardado só neste navegador, e um botão volta à cotação do dia.',

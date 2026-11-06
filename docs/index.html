@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Estimativa do preço de venda de um Pokémon do PokeIdle em Gemas, a partir das vendas recentes do mercado.">
 <title>Precificador de Pokémon</title>
-<link rel="stylesheet" href="app.css?v=3398ab99">
+<link rel="stylesheet" href="app.css?v=0aacdf9a">
 </head>
 <body>
 <header class="top">
@@ -15,6 +15,7 @@
   <h1>Precificador de Pokémon</h1>
   <p class="muted">Quanto pedir em Gemas por um Pokémon do PokeIdle, a partir das vendas recentes do mercado.</p>
  </div>
+ <a class="newsbtn support" href="https://livepix.gg/briao" target="_blank" rel="noopener noreferrer"><svg class="newsicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-8.5-9A4.5 4.5 0 0 1 12 7.5 4.5 4.5 0 0 1 20.5 11C19 15.6 12 20 12 20z"/></svg><span>Apoie o projeto</span></a>
 </header>
 <main class="layout">
  <form id="form" class="card" novalidate>
@@ -36,8 +37,17 @@
   <p id="status" class="muted small" role="status">Carregando vendas…</p>
  </form>
  <section id="result" class="card" aria-live="polite">
-  <h2>Preço</h2>
-  <p class="muted">O resultado aparece aqui.</p>
+  <h2>Preço em Gemas</h2>
+  <p class="muted">Cole a ficha e clique em Precificar. Exemplo do que aparece aqui:</p>
+  <div class="example">
+   <div class="prices ruler"><div class="price"><span>Vender rápido</span><b>10</b></div><div class="price main"><span>Preço justo</span><b>21</b></div><div class="price"><span>Esperar</span><b>62</b></div></div>
+   <div class="track"><i class="mark"></i></div>
+  </div>
+  <ul class="examplelist muted">
+   <li>A confiança do preço e o motivo quando ela é baixa.</li>
+   <li>Gráficos com as vendas da cadeia do Pokémon e o preço em outros níveis.</li>
+   <li>As vendas que mais pesaram e como o preço foi calculado.</li>
+  </ul>
  </section>
  <section id="charts" class="card wide" aria-live="polite" hidden></section>
 </main>
@@ -52,7 +62,7 @@
 <script src="js/central.js?v=db32209b" defer></script>
 <script src="js/ficha.js?v=053e6405" defer></script>
 <script src="js/nota.js?v=f0647af1" defer></script>
-<script src="js/novidades.js?v=c314952f" defer></script>
-<script src="js/app.js?v=1d7c45cd" defer></script>
+<script src="js/novidades.js?v=d7a8ede3" defer></script>
+<script src="js/app.js?v=8a972b22" defer></script>
 </body>
 </html>
