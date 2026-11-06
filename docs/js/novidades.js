@@ -3,6 +3,10 @@
 (function(){
  'use strict';
  const NOVIDADES=[
+  {data:'06/11/2026',itens:[
+   'A explicação do preço foi reescrita em um só bloco, mais curta e com a parte técnica no final.',
+   'Os textos falam da cadeia do Pokémon colado e dizem quais formas entraram na conta, incluindo Mega. A tabela e o gráfico mostram a forma de cada venda.',
+   'A ficha copiada com o jogo em inglês agora funciona.']},
   {data:'05/11/2026, 9h21',itens:[
    'No gráfico de vendas, os eixos trocaram de lugar: o preço fica na vertical e a Nota ou o Poder na horizontal.']},
   {data:'04/11/2026, 12h14',itens:[

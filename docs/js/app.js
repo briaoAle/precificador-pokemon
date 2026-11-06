@@ -45,8 +45,8 @@
  // Gráfico abre em "Por nota" (04/11/2026); sem Nota na ficha, em "Por poder".
  let chartMode='nota',grouped=false;
  function scatter(r,all,m,lo,hi,grouped){
-  const who=`${r.family}${r.shiny?' shiny':''}`,mine=m.of(r),known=all.filter(x=>Number.isFinite(m.of(x))),sales=known.filter(x=>m.of(x)>=m.from),hidden=known.length-sales.length;
-  if(sales.length<3)return [el('p','small muted',`Poucas vendas de ${who} com ${m.axis.toLowerCase()} para mostrar num gráfico.`)];
+  const mine=m.of(r),known=all.filter(x=>Number.isFinite(m.of(x))),sales=known.filter(x=>m.of(x)>=m.from),hidden=known.length-sales.length;
+  if(sales.length<3)return [el('p','small muted',`Poucas vendas ${chainOf(r).of}${r.shiny?' shiny':''} com ${m.axis.toLowerCase()} para mostrar num gráfico.`)];
   // Eixos (invertidos em 05/11/2026): o eixo vertical fica colado à esquerda, em 0 (Poder) ou 3,5 (Nota): vendas com nota abaixo de
   // 3,5 ficam fora (contadas no texto); vai até a venda mais alta; o eixo horizontal passa no meio, no Preço justo
   // (preço em escala log, mesma distância dos dois lados). A linha amarela tracejada é a Nota ou o Poder deste Pokémon (conforme o eixo), onde cair.
@@ -69,7 +69,7 @@
     const cell=svg('rect',{class:'cell'+(price>=lo&&price<=hi?' in':''),x:L+c.i*CW+.5,y:B-(c.j+1)*CH+.5,width:CW-1,height:CH-1,rx:1.5,'fill-opacity':(.2+.8*Math.sqrt(n/most)).toFixed(2)});
     cell.append(svg('title',{},`${n} ${n===1?'venda':'vendas'} · ${gems(Math.min(...ps))} a ${gems(Math.max(...ps))} Gemas (mediana ${gems(mid(ps))}) · ${m.axis} ${m.fmt(Math.min(...vs))} a ${m.fmt(Math.max(...vs))}`));chart.append(cell);}}
   else for(const s of [...sales].sort((a,b)=>a.at-b.at)){const dot=svg('circle',{class:'sale'+(s.base>=lo&&s.base<=hi?' in':'')+(Math.abs(Math.log(s.base)-lb)>dp?' over':''),cx:X(m.of(s)),cy:Y(s.base),r:4});
-   dot.append(svg('title',{},`${gems(s.base)} Gemas sem Adicionais · PvE ${gems(s.pve)}${Number.isFinite(s.nota)?' · nota '+METRICS.nota.fmt(s.nota):''} · Nv ${gems(s.level)} · ${when(s.at)}`));chart.append(dot);}
+   dot.append(svg('title',{},`${s.name}: ${gems(s.base)} Gemas sem Adicionais · PvE ${gems(s.pve)}${Number.isFinite(s.nota)?' · nota '+METRICS.nota.fmt(s.nota):''} · Nv ${gems(s.level)} · ${when(s.at)}`));chart.append(dot);}
   // Por cima dos pontos: tracejado amarelo = o valor deste Pokémon; o ponto amarelo fica no Preço justo dele.
   chart.append(svg('line',{class:'mine',x1:cx,x2:cx,y1:T,y2:B}));
   const me=svg('circle',{class:'me',cx,cy,r:6});me.append(svg('title',{},`Este Pokémon: ${m.axis} ${m.fmt(mine)} · Preço justo ${gems(r.base)} Gemas`));chart.append(me);
@@ -84,11 +84,11 @@
   if(R-cx>=tw(highText)+tw(mineText)/2+6)chart.append(svg('text',{class:'axis',x:R,y:under,'text-anchor':'end'},highText));
   const above=sales.filter(s=>m.of(s)>mine),cheapAbove=above.filter(s=>s.base<r.base).length,below=sales.filter(s=>m.of(s)<mine),dearBelow=below.filter(s=>s.base>r.base).length;
   const inside=prices.filter(v=>v>=lo&&v<=hi).length;
-  chart.setAttribute('aria-label',`${sales.length} vendas de ${who} por preço e ${m.axis}; ${above.length} ${m.more} que este, ${cheapAbove} delas mais baratas que o Preço justo`);
-  return [chart,el('p','small',`${grouped?"Cada quadrado junta as vendas da cadeia evolutiva daquela área (cor mais forte, mais vendas; passe o mouse para ver quantas), de qualquer nível (no preço, as de nível parecido pesam mais)":"Cada ponto é uma venda da cadeia evolutiva, de qualquer nível (no preço, as de nível parecido pesam mais)"}: mais acima, mais cara; mais à direita, ${m.up}. A linha branca horizontal é o Preço justo; a linha amarela marca ${m.mine} (ponto amarelo): os pontos perto dela têm ${m.near}. Das ${sales.length}, ${above.length} eram ${m.more} (${cheapAbove} delas saíram mais baratas que o Preço justo) e ${below.length} ${m.less} (${dearBelow} saíram mais caras). ${inside} ficaram entre Vender rápido e Esperar (faixa verde). Preços sem os Adicionais.${outside?` ${outside} ${outside===1?'venda muito longe do Preço justo aparece':'vendas muito longe do Preço justo aparecem'} na borda, em círculo vazado.`:''}${hidden?` ${hidden} ${hidden===1?"venda":"vendas"} com nota abaixo de 3,5 ${hidden===1?"fica":"ficam"} fora do gráfico.`:""}`)];
+  chart.setAttribute('aria-label',`${sales.length} vendas ${chainOf(r).of}${r.shiny?' shiny':''} por preço e ${m.axis}; ${above.length} ${m.more} que este, ${cheapAbove} delas mais baratas que o Preço justo`);
+  return [chart,el('p','small',`${grouped?'Cada quadrado junta vendas da cadeia, de qualquer nível; cor mais forte, mais vendas.':'Cada ponto é uma venda da cadeia, de qualquer nível.'} Linha branca: Preço justo. Amarelo: este Pokémon. Faixa verde: entre Vender rápido e Esperar (${inside} de ${sales.length} vendas). Preços sem Adicionais.${m===METRICS.nota&&chainOf(r).forms.length>1?' Cada venda mostra a Nota da forma vendida.':''}${outside?` Círculo vazado: ${outside===1?'venda muito longe':'vendas muito longe'} do Preço justo.`:''}${hidden?` ${hidden===1?'1 venda com nota abaixo de 3,5 fica fora':`${hidden} vendas com nota abaixo de 3,5 ficam fora`}.`:''}`)];
  }
  function familyChart(r){
-  const all=rows.filter(x=>x.family===r.familyId&&x.shiny===r.shiny),who=`${r.family}${r.shiny?' shiny':''}`;
+  const all=rows.filter(x=>x.family===r.familyId&&x.shiny===r.shiny);
   if(all.length<3)return null;
   const addons=r.median-r.base,lo=Math.max(1,r.low-addons),hi=Math.max(lo,r.high-addons);
   const box=el('div'),bar=el('div','switch');bar.setAttribute('role','group');bar.setAttribute('aria-label','Eixo horizontal do gráfico');
@@ -115,42 +115,57 @@
    const li=el('li');li.append(el('i','swatch '+cls),el('b',null,pct(x)+'%'),' '+label);legend.append(li);}
   return [el(heading,null,'Onde o preço pago caiu (teste com todas as espécies)'),stack,legend];
  }
- const REASONS={proximidade:'poucas vendas parecidas com este Pokémon',certeza:'muitas vendas com Adicional incerto',consistencia:'os preços das vendas parecidas variam muito',ampliacao:'poucas vendas da cadeia evolutiva, completadas com outras espécies'};
- const PART_LABELS={proximidade:'Vendas parecidas (quantas existem)',certeza:'Adicionais confirmados (peso sem Adicional incerto)',consistencia:'Preços que concordam (o quanto as vendas concordam no preço)',ampliacao:'Peso da própria cadeia evolutiva (quanto vem de vendas da cadeia evolutiva)'};
+ const REASONS={proximidade:'poucas vendas parecidas com este Pokémon',certeza:'muitas vendas com Adicional incerto',consistencia:'os preços das vendas parecidas variam muito',ampliacao:'poucas vendas deste Pokémon e da cadeia dele, completadas com outras espécies'};
+ const PART_LABELS={proximidade:'Vendas parecidas (quantas existem)',certeza:'Adicionais confirmados (peso sem Adicional incerto)',consistencia:'Preços que concordam (o quanto as vendas concordam no preço)',ampliacao:'Peso da própria cadeia (quanto vem de vendas da cadeia)'};
 // Nome curto da nota que mais pesa na calibração atual (precos.json → confianca.pesos; ordem: proximidade, certeza, consistência, ampliação).
  const topPart=()=>{const w=precos.confianca?.pesos||[],k=Object.keys(PART_LABELS),i=[1,2,3,4].reduce((a,b)=>(w[b]??0)>(w[a]??0)?b:a,1);return PART_LABELS[k[i-1]].replace(/ \(.*$/,'');};
  // Auditoria (fechada), em camadas para o jogador comum: um resumo de 4 linhas, "Como calculamos" e "Quão bem isso
  // funcionou" (os dois fechados). Os números vêm do resultado e de precos.json (teste e confianca).
- const sub=(title,...nodes)=>{const d=el('details','sub');d.append(el('summary',null,title),...nodes);return d;};
+ const listText=x=>x.length>1?`${x.slice(0,-1).join(', ')} e ${x.at(-1)}`:x[0];
+ // A cadeia sempre leva o nome do Pokémon da ficha, mas reúne todas as formas: as vendas são agrupadas sob a última evolução.
+ let parents=null;
+ const depth=id=>{if(!parents){parents=new Map();for(const [i,e]of central.species)for(const k of e.evo||[])if(!parents.has(k))parents.set(k,i);}let d=0;while(parents.has(id)&&d<9){id=parents.get(id);d++;}return d;};
+ const megaBaseOf=id=>{const e=central.species.get(id),b=e?.megaBase??(id>=3000&&id<4000&&/^Mega /i.test(e?.n||'')?id-3000:null);return central.species.has(b)?b:null;};
+ function chainOf(r){
+  const sold=rows.filter(x=>x.family===r.familyId&&x.shiny===r.shiny),e=central.species.get(r.speciesId),isMega=megaBaseOf(r.speciesId)!=null;
+  depth(r.speciesId);
+  const hasChain=isMega||central.megas.has(r.speciesId)||parents.has(r.speciesId)||(e?.evo||[]).some(id=>central.species.has(id));
+  const byId=new Map();for(const x of sold)if(!byId.has(x.speciesId))byId.set(x.speciesId,x);
+  const forms=[...byId.values()].sort((a,b)=>Number(a.mega)-Number(b.mega)||depth(a.speciesId)-depth(b.speciesId)||a.name.localeCompare(b.name)).map(x=>x.name);
+  const kind=r.shiny?'shiny':'não shiny',of=hasChain?`da cadeia de ${r.name}`:`de ${r.name}`;
+  const branch=!isMega&&central.finals(r.speciesId,false).length>1;
+  const formsText=!hasChain?`Contam as vendas de ${r.name}.`:!forms.length?`A cadeia de ${r.name} não teve vendas ${kind} nos últimos 30 dias.`:`A cadeia de ${r.name} reúne vendas ${kind} de ${listText(forms)}.${sold.some(x=>x.mega)?' Nas vendas de Mega, o valor da pedra é descontado antes da comparação.':''}`;
+  const power=isMega?`O Poder é calculado como ${r.family}, sem a Mega, no Nv 100. O valor da Mega é somado no fim, como um Adicional.`
+   :branch?`O Poder é calculado como ${r.family}, a evolução mais forte para esta ficha, no Nv 100, e a cadeia fica só com as vendas ligadas a ${r.family}.`
+   :r.name!==r.family?`O Poder é calculado como ${r.family}, a última evolução, no Nv 100.`:'O Poder é calculado no Nv 100.';
+  const notaMix=forms.length>1?' A Nota de cada venda é a da forma vendida, e a mesma ficha pode ter Nota maior depois de evoluir.':'';
+  return {hasChain,of,forms,formsText,powerText:`${power} A Nota e o nível são os da ficha.${notaMix}`,notaMix};
+ }
  const li=text=>el('li',null,text);
  function confidence(t,r){
-  const details=el('details');details.append(el('summary',null,'Como o preço e a confiança são calculados (auditoria)'));
-  const fam=r.family,share=Math.round((r.weight||0)*100),c=r.confidence,u=r.uncertain||{};
-  const top=el('ul','summary');
-  top.append(li(`Preço justo: ${gems(r.median)} Gemas. É o valor do meio das vendas parecidas: metade saiu por menos, metade por mais.`),
-   li('Vender rápido e Esperar marcam a faixa normal: metade das vendas parecidas saiu entre os dois.'));
-  if(c)top.append(li(`Confiança ${c.percent}%: em vendas como esta, cerca de ${c.percent} em cada 100 costumam sair a até 25% do Preço justo.`));
-  top.append(li(share>=50?`Baseado principalmente em ${gems(r.familyCount)} vendas de ${fam}.`:`Poucas vendas de ${fam} (${gems(r.familyCount)}): o cálculo se apoia mais em outras espécies.`));
-  details.append(top);
-  // Como calculamos.
-  const how=[el('h5',null,'Quais vendas entram'),el('p',null,'Só vendas dos últimos 30 dias, e shiny só se compara com shiny (não shiny com não shiny). Cada venda ganha um peso: pesa mais quanto mais parecida for com este Pokémon em Poder, Nota e nível, e quanto mais recente for (uma venda de duas semanas atrás vale metade de uma de hoje). Poder e Nota são os mais exigentes: uma venda com Poder 19% diferente, ou com Nota 0,35 diferente, já vale metade.'),
-   el('h5',null,'Primeiro a cadeia evolutiva, depois as outras espécies'),el('p',null,'As vendas da mesma cadeia evolutiva (todas as formas que evoluem para o mesmo Pokémon final) são as que mais pesam. Com poucas vendas dela, entram também Pokémon com os mesmos dois tipos, depois com um tipo em comum, depois todos, cada grupo com bem menos peso que o anterior.'),
-   el('p',null,`Neste Pokémon, ${share}% do peso do cálculo vem das ${gems(r.familyCount)} vendas de ${fam}; os outros ${100-share}% vêm das demais vendas (${gems(r.marketCount)} no total). É o peso no cálculo, não a quantidade de vendas.`),
-   el('h5',null,'Como uma espécie diferente ajuda sem copiar o preço dela'),el('p',null,'Montamos uma referência de quanto o mercado costuma pagar por cada Poder, Nota e nível, com todas as vendas do mesmo tipo (shiny ou não). A Nota é a que mais pesa nela; o nível quase não muda o preço até o Nv 100 (o nível em que o Pokémon vem da hunt) e passa a subir depois. Cada venda é comparada com essa referência: saiu acima ou abaixo do normal para ela? É esse "acima ou abaixo" que entra no cálculo, não o preço.'),
-   el('p',null,'Exemplo: se um Garchomp de Poder parecido vendeu 15% acima do normal para ele, isso sugere que o mercado está pagando mais, e puxa este preço um pouco para cima.'),
-   el('h5',null,'Os números da tela'),el('p',null,'O Preço justo é o valor do meio dessas vendas, já ajustadas para o Poder, a Nota e o nível deste Pokémon e contando o peso de cada uma. Vender rápido: 25% das vendas parecidas saíram abaixo dele. Esperar: 25% saíram acima.'),
-   ...(precos.correcao?.bias?[el('p',null,`Correção: nas vendas dos últimos ${precos.correcao.dias} dias, o cálculo saía em média ${pct(Math.abs(Math.exp(precos.correcao.bias)-1))}% ${precos.correcao.bias>0?'acima':'abaixo'} do valor pago. Esse desvio já vem descontado dos três números.`)]:[]),
-   el('h5',null,'Adicionais'),el('p',null,'Cada Adicional conta 10 unidades do item (fragmentos de Z-Move ou AoE, pedras Mega) pelo preço do dia: a mediana das leituras do menor anúncio no mercado naquele dia. O valor é tirado de cada venda antes da comparação e somado de volta no fim, pelo preço de hoje. Mega e Mega Shiny vêm da própria ficha.'),
-   el('h5',null,'Vendas com Adicional incerto'),el('p',null,`O jogo mostra o AoE e o Z-Move que o Pokémon tem hoje, não os que tinha na venda. Quando não dá para saber, a venda entra como se eles tivessem sido aplicados depois: o valor deles não é descontado do preço pago, para o cálculo errar para cima e não para baixo. O risco aparece na confiança.${u.family?` Aqui, ${gems(u.family)} das ${gems(r.familyCount)} vendas de ${fam} estão nesse caso.`:''}`),
-   el('h5',null,'Pokémon refinados'),el('p',null,'O refino (o "+N" comprado com pedras) não entra no Poder. Vendas de Pokémon refinados entram como se não tivessem refino, com o mesmo peso das outras. O preço pago inclui o refino, o que puxa o cálculo um pouco para cima.')];
+  const details=el('details');details.append(el('summary',null,'Como o preço e a confiança são calculados'));
+  const ch=chainOf(r),share=Math.round((r.weight||0)*100),c=r.confidence,u=r.uncertain||{};
+  const para=(lead,text)=>{const p=el('p');p.append(el('b',null,lead+' '),text);return p;};
+  details.append(
+   para(`Preço justo: ${gems(r.median)} Gemas.`,'É o valor do meio das vendas parecidas, ajustadas para a ficha deste Pokémon, com os Adicionais somados. Vender rápido e Esperar marcam a faixa onde saiu a metade central delas.'),
+   para('Quais vendas contam.',`${ch.formsText} Só entram os últimos 30 dias, e shiny só se compara com shiny. Pesam mais as vendas de Poder, Nota e nível parecidos e as mais recentes. Com poucas vendas parecidas ${ch.of}, entram outras espécies, com bem menos peso: primeiro as com os mesmos dois tipos, depois com um tipo em comum, depois todas.`),
+   para('Poder, Nota e nível.',ch.powerText),
+   para('Peso neste preço.',`${share}% do cálculo vem das ${gems(r.familyCount)} vendas ${ch.of}; os outros ${100-share}% vêm das demais vendas. É o peso no cálculo, não a quantidade de vendas.`));
+  if(c)details.append(para(`Confiança ${c.percent}%.`,`Em vendas como esta, cerca de ${c.percent} em cada 100 costumam sair a até 25% do Preço justo.`));
+  // Parte técnica, no mesmo dropdown.
+  const how=[el('h4',null,'Detalhes técnicos'),
+   para('Pesos.','Uma venda de duas semanas atrás vale metade de uma de hoje. Uma venda com Poder 19% diferente, ou com Nota 0,35 diferente, também vale metade.'),
+   para('Referência do mercado.','Todas as vendas do mesmo tipo (shiny ou não) formam uma curva de quanto o mercado paga por Poder, Nota e nível. A Nota é a que mais pesa; o nível quase não muda o preço até o Nv 100 e sobe depois. De cada venda entra só o quanto ela saiu acima ou abaixo dessa curva, e não o preço: é assim que outra espécie ajuda sem copiar o preço dela.'),
+   ...(precos.correcao?.bias?[para('Correção.',`Nas vendas dos últimos ${precos.correcao.dias} dias, o cálculo saía em média ${pct(Math.abs(Math.exp(precos.correcao.bias)-1))}% ${precos.correcao.bias>0?'acima':'abaixo'} do valor pago. Esse desvio já vem descontado dos três números.`)]:[]),
+   para('Adicionais.','Cada um conta 10 unidades do item (fragmentos de Z-Move ou AoE, pedras Mega) pela mediana do menor anúncio do dia. O valor sai de cada venda antes da comparação e volta no fim, pelo preço de hoje.'),
+   para('Adicional incerto.',`O jogo mostra o AoE e o Z-Move de hoje, não os da venda. Na dúvida, o valor deles não é descontado, para o cálculo errar para cima, e o risco aparece na confiança.${u.family?` Aqui, ${gems(u.family)} das ${gems(r.familyCount)} vendas ${ch.of} estão nesse caso.`:''}`),
+   para('Refino.','Não entra no Poder: vendas refinadas contam como se não tivessem refino. Como o preço pago inclui o refino, isso puxa o cálculo um pouco para cima.')];
   if(c&&r.confidenceParts){
    const parts=el('ul','parts');for(const [k,label]of Object.entries(PART_LABELS)){const item=el('li');item.append(el('span',null,label),el('b',null,String(Math.round(r.confidenceParts[k]*100))));parts.append(item);}
    const avg=Math.round(Object.values(r.confidenceParts).reduce((s,x)=>s+x,0)/4*100);
-   how.push(el('h5',null,'De onde vem a confiança'),el('p',null,'Ela junta quatro notas deste Pokémon, de 0 a 100:'),parts,
-    el('p',null,`As notas não entram por média simples (que daria ${avg}): cada uma tem um peso aprendido nas vendas recentes, e "${topPart()}" é a que mais pesa. Com esses pesos, as quatro dão ${Math.round(c.chance*100)}%, arredondados para ${c.percent}%. O que mais puxou para baixo: ${REASONS[c.lowest]}.`));
+   how.push(para('De onde vem a confiança.',`Quatro notas de 0 a 100, com pesos aprendidos nas vendas recentes (a média simples daria ${avg}). "${topPart()}" é a que mais pesa, e juntas elas dão ${Math.round(c.chance*100)}%, arredondados para ${c.percent}%. O que mais puxou para baixo: ${REASONS[c.lowest]}.`),parts);
   }
-  details.append(sub('Como calculamos',...how));
-  // Quão bem isso funcionou.
+  details.append(...how);
   const proof=[];
   if(t?.precificadas){
    const times=t.erroMediano.toLocaleString('pt-BR',{maximumFractionDigits:1}),list=el('ul');
@@ -170,7 +185,7 @@
    const wrap=el('div','tablewrap');wrap.append(tb);proof.push(wrap,el('p','small muted','Faixas com menos de 30 vendas ficam de fora (amostra pequena).'));
   }
   proof.push(el('p','small muted',`Vendas lidas em ${when(Date.parse(precos.geradoEm))}.`));
-  details.append(sub('Quão bem isso funcionou',...proof));
+  details.append(...proof);
   return details;
  }
 
@@ -178,14 +193,15 @@
  // e vendida hoje). Abre pela Proximidade,
  // com 10 linhas e "Mostrar mais". Ordenação pelo cabeçalho: 1º clique do maior para o menor, 2º inverte.
  const share=x=>!Number.isFinite(x)?'–':x>=.001?(x*100).toLocaleString('pt-BR',{maximumFractionDigits:x>=.1?0:1})+'%':'< 0,1%';
- function salesTable(comps){
+ function salesTable(comps,showForm){
   const cols=[{key:'closeness',label:'Proximidade'},{key:'level',label:'Nível'},{key:'nota',label:'Nota'},{key:'pve',label:'PvE'},{key:'at',label:'Data'},{key:'price',label:'Gemas'}];
   let sort={key:'closeness',dir:'desc'},open=false;const FIRST=10;
   const table=el('table','sales'),head=el('tr'),body=el('tbody'),more=el('button','toggle');table.append(el('thead'),body);table.tHead.append(head);more.type='button';
   more.addEventListener('click',()=>{open=!open;draw();});
   function draw(){
    const obsHead=el('th','obs','Observação');obsHead.scope='col';
-   head.replaceChildren(...cols.map(c=>{const th=el('th');th.scope='col';const b=el('button',null,c.label+(sort.key===c.key?(sort.dir==='asc'?' ↑':' ↓'):''));b.type='button';
+   const formHead=el('th',null,'Forma');formHead.scope='col';
+   head.replaceChildren(...(showForm?[formHead]:[]),...cols.map(c=>{const th=el('th');th.scope='col';const b=el('button',null,c.label+(sort.key===c.key?(sort.dir==='asc'?' ↑':' ↓'):''));b.type='button';
     if(sort.key===c.key)th.setAttribute('aria-sort',sort.dir==='asc'?'ascending':'descending');
     if(c.key==='price')th.title='Valor pago na venda, com os Adicionais dela (pelo preço daquele dia)';
     if(c.key==='pve')th.title='PvE sem adicionais, no Nv 100 e na última evolução (o mesmo número do jogo)';
@@ -199,6 +215,7 @@
     if(c.uncertain){const m=el('span','warn','Adicional incerto');m.title='O jogo mostra o AoE e o Z-Move que o Pokémon tem hoje: esta venda foi lida depois e eles podem ter sido aplicados pelo comprador';marks.push(m);}
     marks.forEach((m,i)=>{if(i)obs.append(' · ');obs.append(m);});
     tr.title=`${c.name}${c.shiny?' shiny':''}`;
+    if(showForm)tr.append(el('td',null,c.name));
     tr.append(el('td',null,share(c.closeness)),el('td',null,gems(c.level)),el('td',null,Number.isFinite(c.nota)?METRICS.nota.fmt(c.nota):'–'),el('td',null,Number.isFinite(c.pve)?gems(c.pve):'–'),el('td',null,when(c.at)),price,obs);return tr;}));
    more.hidden=list.length<=FIRST;more.textContent=open?'Mostrar menos':`Mostrar mais (${list.length-FIRST})`;
   }
@@ -233,7 +250,7 @@
   chart.append(svg('text',{x:L-6,y:B,'text-anchor':'end'},'0'),svg('text',{x:L-6,y:T+8,'text-anchor':'end'},gems(Math.round(top))));
   chart.append(svg('text',{class:'axisname',x:(L+R)/2,y:H-8,'text-anchor':'middle'},'Nível →'),svg('text',{class:'axisname',x:14,y:(T+B)/2,'text-anchor':'middle',transform:`rotate(-90 14 ${(T+B)/2})`},'Pokémon (Gemas) →'));
   const up=pts.filter(p=>p.level>now.level&&[200,500,1000,2000,5000,10000].includes(p.level)).slice(0,3);
-  const nodes=[el('h4',null,'Preço por nível'),chart,el('p','small',`Valor do Pokémon sem Adicionais com a mesma ficha em outros níveis, pelo quanto o mercado paga a mais por nível (o mesmo cálculo do Preço justo)${add>0?`; os Adicionais somam ${gems(add)} Gemas em qualquer nível`:''}.${Number.isFinite(r.dropLevel)?` Começa no Nv ${gems(r.dropLevel)}, o nível em que ${r.name} vem da hunt.`:''}${r.dropLevel<100?' Até o Nv 100 o nível quase não muda o preço.':''} A curva é a mesma para todas as espécies: em algumas cadeias evolutivas o nível pesa menos.`)];
+  const nodes=[el('h4',null,'Preço por nível'),chart,el('p','small',`A mesma ficha em outros níveis, sem Adicionais${add>0?` (eles somam ${gems(add)} Gemas em qualquer nível)`:''}.${Number.isFinite(r.dropLevel)?` Começa no Nv ${gems(r.dropLevel)}, o nível da hunt.`:''} A curva é a mesma para todas as espécies.`)];
   if(up.length)nodes.push(el('p','small',`Se upar antes de vender: ${up.map(p=>`Nv ${gems(p.level)} ≈ ${gems(p.median)} Gemas (+${pct(p.median/now.median-1)}%)`).join(' · ')}.`));
   return nodes;
  }
@@ -241,34 +258,34 @@
  // peso de cada uma na calibração (peso × o que falta para 1), do maior para o menor; entram as que tiram ao menos 60%
  // do que a principal tira, até três. Uma frase por motivo.
  function lowReasons(r){
-  const parts=r.confidenceParts||{},W=precos.confianca?.pesos||P.CONFIDENCE.weights,fam=r.family;
+  const parts=r.confidenceParts||{},W=precos.confianca?.pesos||P.CONFIDENCE.weights,of=chainOf(r).of;
   const loss=P.CONFIDENCE.keys.map((k,i)=>({k,v:W[i+1]*(1-(parts[k]??1))})).sort((a,b)=>b.v-a.v),top=loss[0].v;
   // "Comparáveis" é por peso (Poder, Nota, nível e data), não por quantidade: a cadeia evolutiva pode ter muitas vendas e nenhuma
   // comparável. O número equivalente (cadeia evolutiva + espécies dos mesmos tipos) sai da Proximidade (n ÷ (n + 5)); pela conta do
   // motor (soma² ÷ soma dos quadrados) ele é 0 ou pelo menos 1, então o arredondamento da volta nunca pode dar "menos de 1".
   return reasonTexts({keys:loss.filter(x=>x.v>0&&x.v>=top*.6).slice(0,3).map(x=>x.k),proximidade:parts.proximidade??0,
-   ampliacao:parts.ampliacao??1,family:fam,familyCount:r.familyCount||0,shiny:r.shiny});
+   ampliacao:parts.ampliacao??1,of,familyCount:r.familyCount||0,shiny:r.shiny});
  }
  // Só o texto, a partir das variáveis (testável sem precificar nada).
- function reasonTexts({keys,proximidade:p,ampliacao:a,family:fam,familyCount:fc,shiny}){
+ function reasonTexts({keys,proximidade:p,ampliacao:a,of,familyCount:fc,shiny}){
   const n=p<=0?0:p>=1?99:Math.max(1,Math.round(5*p/(1-p))),kind=shiny?'shiny':'não shiny';
-  const total=fc>0?`a cadeia evolutiva tem ${gems(fc)} ${fc===1?'venda':'vendas'} ${kind}`:`a cadeia evolutiva não tem vendas ${kind}`;
+  const total=fc>0?`são ${gems(fc)} ${fc===1?'venda':'vendas'} ${kind} no total`:`nenhuma venda ${kind}`;
   const eq=n===1?'equivale a uma venda só':n<10?`equivale a só cerca de ${n} vendas`:`equivale a cerca de ${n>=99?'100 ou mais':n} vendas`;
-  const famPart=fc===0?`nenhuma é de ${fam} (${total})`:a<.1?`quase nada vem de ${fam} (${total})`:`pouco vem de ${fam} (${total})`;
+  const famPart=fc===0?`nenhuma é ${of} (${total})`:a<.1?`quase nada vem ${of} (${total})`:`pouco vem ${of} (${total})`;
   const text={
-   proximidade:n===0?`Nenhuma venda de ${fam} ou de espécies dos mesmos tipos é parecida com este Pokémon: o preço vem de espécies com outros tipos.`
-    :`${n<10?'Poucas vendas comparáveis: o':'O'} peso das vendas parecidas, de ${fam} e de espécies dos mesmos tipos, ${eq}.`,
-   ampliacao:fc===0?`Não há vendas ${kind} de ${fam}: o preço vem de outras espécies.`
-    :fc===1?(a<.1?`A única venda ${kind} de ${fam} é pouco parecida com este Pokémon: o preço vem de outras espécies.`
-     :`${fam} tem só 1 venda ${kind}: parte do preço vem de outras espécies.`)
-    :a<.1?`Quase nenhuma venda de ${fam} é parecida com este Pokémon (${total}): o preço vem de outras espécies.`
-    :`Poucas vendas de ${fam} são parecidas com este Pokémon (${total}): parte do preço vem de outras espécies.`,
+   proximidade:n===0?`Nenhuma venda ${of} ou de espécies dos mesmos tipos é parecida com este Pokémon: o preço vem de espécies com outros tipos.`
+    :`${n<10?'Poucas vendas comparáveis: o':'O'} peso das vendas parecidas, ${of} e de espécies dos mesmos tipos, ${eq}.`,
+   ampliacao:fc===0?`Não há vendas ${kind} ${of}: o preço vem de outras espécies.`
+    :fc===1?(a<.1?`A única venda ${kind} ${of} é pouco parecida com este Pokémon: o preço vem de outras espécies.`
+     :`Há só 1 venda ${kind} ${of}: parte do preço vem de outras espécies.`)
+    :a<.1?`Quase nenhuma venda ${of} é parecida com este Pokémon (${total}): o preço vem de outras espécies.`
+    :`Poucas vendas ${of} são parecidas com este Pokémon (${total}): parte do preço vem de outras espécies.`,
    consistencia:'Os preços dessas vendas variam muito entre si.',
    certeza:'Muitas vendas têm Adicional incerto: o AoE ou o Z-Move podem ter sido aplicados depois da venda, o que distorce a comparação.'};
   keys=[...keys];
   // Cadeia evolutiva e vendas comparáveis juntas viram uma frase só (as duas falam de falta de vendas comparáveis).
   if(keys.includes('ampliacao')&&keys.includes('proximidade')){
-   text.proximidade=n===0?`Nenhuma venda parecida com este Pokémon, nem de ${fam} (${total}) nem de espécies dos mesmos tipos: o preço vem de espécies com outros tipos.`
+   text.proximidade=n===0?`Nenhuma venda parecida com este Pokémon, nem ${of} (${total}) nem de espécies dos mesmos tipos: o preço vem de espécies com outros tipos.`
     :`Poucas vendas comparáveis: o peso das vendas parecidas ${eq}, e ${famPart}; o resto vem de outras espécies.`;
    keys.splice(keys.indexOf('ampliacao'),1);}
   return (keys.length?keys:['proximidade']).map(k=>text[k]);
@@ -296,7 +313,7 @@
    // Sem causa citada e preço diferente da média: a diferença vem do Poder e das outras vendas da comparação.
    const link=causes.length?`, ou seja, tem ${causes.join(' e ')}, então estimamos`:side?'; pelo Poder dele e pelas outras vendas da comparação, estimamos':'; estimamos';
    head('Como chegamos ao preço');
-   box.append(el('p',null,`${one?`A venda de ${r.family} mais parecida saiu por`:`As vendas de ${r.family} mais parecidas saíram, em média, por`} ${g(paid)} (sem Adicionais), com ${fmt(lv,nota)}. Este Pokémon tem ${fmt(r.level,mine)}${link} ${g(r.base)}.${caution}`));
+   box.append(el('p',null,`${one?`A venda ${chainOf(r).of} mais parecida saiu por`:`As vendas ${chainOf(r).of} mais parecidas saíram, em média, por`} ${g(paid)} (sem Adicionais), com ${fmt(lv,nota)}. Este Pokémon tem ${fmt(r.level,mine)}${link} ${g(r.base)}.${caution}`));
   }
   if(r.missing?.length){const m=r.missing,list=m.length>1?`${m.slice(0,-1).join(', ')} e ${m.at(-1)}`:m[0];box.append(el('p','warn',`${m.length>1?'Adicionais':'Adicional'} sem cotação: ${list} ${m.length>1?'ficaram':'ficou'} fora do total.`));}
   if(r.refined){head('Refino');box.append(el('p',null,'Não entra no preço: o Pokémon é comparado como se não tivesse refino.'));}
@@ -330,13 +347,13 @@
   // Os dois gráficos lado a lado (no celular, um embaixo do outro); auditoria e tabela de vendas abaixo deles.
   if(r.available){const chart=familyChart(r),left=el('div','chartcol'),right=el('div','chartcol'),levels=levelChart(r),row=el('div',levels.length?'chartrow':null);
    const head=(title,tools)=>{const h=el('div','charthead');h.append(el('h4',null,title));if(tools)h.append(tools);return h;};
-   if(chart){const [tools,...rest]=chart;left.append(head(`Vendas de ${r.family}`,tools),...rest);}else left.append(...(precos.teste?.precificadas?generic(precos.teste,'h4'):[]));
+   if(chart){const [tools,...rest]=chart;left.append(head(`Vendas ${chainOf(r).of}`,tools),...rest);}else left.append(...(precos.teste?.precificadas?generic(precos.teste,'h4'):[]));
    row.append(left);if(levels.length){const [,...rest]=levels;right.append(head('Preço por nível'),...rest);row.append(right);}
    below.push(row);}
-  if(r.comps?.length){below.push(el("h4",null,`Vendas de ${r.family} que mais pesaram no preço`));
+  if(r.comps?.length){below.push(el("h4",null,`Vendas ${chainOf(r).of} que mais pesaram no preço`));
    // Cadeia evolutiva com pouco peso (04/11/2026): avisa que o preço veio de outras espécies, para a tabela não parecer a base dele.
-   if((r.weight||0)<.1)below.push(el('p','small muted',`Só ${pct(r.weight||0)<1?'menos de 1':pct(r.weight||0)}% do preço vem destas vendas de ${r.family}: o resto vem de outras espécies, primeiro as com os mesmos tipos.`));
-   below.push(salesTable(r.comps));}
+   if((r.weight||0)<.1)below.push(el('p','small muted',`Só ${pct(r.weight||0)<1?'menos de 1':pct(r.weight||0)}% do preço vem destas vendas ${chainOf(r).of}: o resto vem de outras espécies, primeiro as com os mesmos tipos.`));
+   below.push(salesTable(r.comps,chainOf(r).hasChain));}
   // Auditoria por último na página (04/11/2026), depois dos gráficos e da tabela de vendas.
   if(r.available)below.push(confidence(precos.teste,r));
   show(nodes,below);
