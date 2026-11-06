@@ -37,7 +37,7 @@
  // dentro da espécie, escala linear), no eixo horizontal, escolhido no seletor. As linhas cruzam neste Pokémon: Preço justo e o valor dele.
  // Faixa verde = Vender rápido–Esperar. Nada projetado: só o que vendeu.
  // SEM filtro de nível (decisão de 03/11/2026): entram vendas de todos os níveis da cadeia evolutiva; o eixo é o PvE ou a nota.
- const SVG='http://www.w3.org/2000/svg',MIN_GEMS=2;
+ const SVG='http://www.w3.org/2000/svg',MIN_GEMS=2,MAX_LEVEL=10000;
  const svg=(tag,attrs,text)=>{const e=document.createElementNS(SVG,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;return e;};
  const METRICS={
   nota:{button:'Por nota',axis:'Nota (0 a 10)',mine:'a Nota deste Pokémon',near:'Nota parecida',of:x=>x.nota,from:3.5,fmt:v=>v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:2}),up:'nota maior',down:'nota menor',more:'com nota maior',less:'com nota menor'},
@@ -90,7 +90,7 @@
  function familyChart(r){
   const all=rows.filter(x=>x.family===r.familyId&&x.shiny===r.shiny);
   if(all.length<3)return null;
-  const addons=r.median-r.base,lo=Math.max(1,r.low-addons),hi=Math.max(lo,r.high-addons);
+  const addons=r.median-r.base,lo=Math.max(MIN_GEMS,r.low-addons),hi=Math.max(lo,r.high-addons);
   const box=el('div'),bar=el('div','switch');bar.setAttribute('role','group');bar.setAttribute('aria-label','Eixo horizontal do gráfico');
   const buttons={},group=el('button','toggle','Agrupar');group.type='button';group.title='Juntar as vendas em quadrados: a cor mostra quantas há em cada um';
   group.addEventListener('click',()=>{grouped=!grouped;draw(chartMode);});
@@ -159,7 +159,7 @@
    ...(precos.correcao?.bias?[para('Correção.',`Nas vendas dos últimos ${precos.correcao.dias} dias, o cálculo saía em média ${pct(Math.abs(Math.exp(precos.correcao.bias)-1))}% ${precos.correcao.bias>0?'acima':'abaixo'} do valor pago. Esse desvio já vem descontado dos três números.`)]:[]),
    para('Adicionais.','Cada um conta 10 unidades do item (fragmentos de Z-Move ou AoE, pedras Mega) pela mediana do menor anúncio do dia. O valor sai de cada venda antes da comparação e volta no fim, pelo preço de hoje.'),
    para('Adicional incerto.',`O jogo mostra o AoE e o Z-Move de hoje, não os da venda. Na dúvida, o valor deles não é descontado, para o cálculo errar para cima, e o risco aparece na confiança.${u.family?` Aqui, ${gems(u.family)} das ${gems(r.familyCount)} vendas ${ch.of} estão nesse caso.`:''}`),
-   para('Refino.',`Não entra no PvE: vendas refinadas contam como se não tivessem refino. Como o preço pago inclui o refino, isso puxa o cálculo um pouco para cima.${r.refined?' Este Pokémon tem refino.':''}`)];
+   para('Refino.','Os Pokémon são comparados sem refino: uma venda refinada conta como se não tivesse refino.')];
   if(c&&r.confidenceParts){
    const parts=el('ul','parts');for(const [k,label]of Object.entries(PART_LABELS)){const item=el('li');item.append(el('span',null,label),el('b',null,String(Math.round(r.confidenceParts[k]*100))));parts.append(item);}
    const avg=Math.round(Object.values(r.confidenceParts).reduce((s,x)=>s+x,0)/4*100);
@@ -228,11 +228,11 @@
   if(Number.isFinite(r.nota))item('Nota',METRICS.nota.fmt(r.nota));if(Number.isFinite(r.pve))item('Poder no PvE',gems(r.pve),'Sem Adicionais, no Nv 100 e na última evolução');
   if(Number.isInteger(r.potencia))item('','P'+r.potencia,'Potência');if(Number.isFinite(r.quality))item('Qualidade',r.quality.toLocaleString('pt-BR',{maximumFractionDigits:2}));if(r.ivSum)item('IV',String(r.ivSum));
   return box;}
- // Preço por nível (04/11/2026): a mesma ficha em outros níveis (priceSheet.byLevel), para o usuário ver quanto ganha
+ // Preço por nível (04/11/2026): a mesma ficha em outros níveis (levelPrices), para o usuário ver quanto ganha
  // upando antes de vender. Nível em escala log; faixa entre Vender rápido e Esperar; o ponto amarelo é o nível atual.
  function levelChart(r){
   // Só o Pokémon (sem Adicionais): é a parte que muda ao upar; os Adicionais somam o mesmo em qualquer nível.
-  const add=r.median-r.base,pts=(r.byLevel||[]).map(p=>({...p,low:Math.max(1,p.low-add),median:Math.max(1,p.median-add),high:Math.max(1,p.high-add)}));if(pts.length<3)return [];
+  const add=r.median-r.base,pts=r.byLevel||[];if(pts.length<3)return [];
   // Mesmo tamanho e margens do gráfico de vendas ao lado (scatter), para os quadros ficarem alinhados.
   const W=340,H=222,L=50,R=334,T=10,B=176,lx0=Math.log(pts[0].level),lx1=Math.log(pts.at(-1).level),top=Math.max(...pts.map(p=>p.high))*1.05;
   const X=lv=>L+(Math.log(lv)-lx0)/(lx1-lx0||1)*(R-L),Y=v=>B-v/top*(B-T);
@@ -252,7 +252,7 @@
   chart.append(svg('text',{x:L-6,y:B,'text-anchor':'end'},'0'),svg('text',{x:L-6,y:T+8,'text-anchor':'end'},gems(Math.round(top))));
   chart.append(svg('text',{class:'axisname',x:(L+R)/2,y:H-8,'text-anchor':'middle'},'Nível →'),svg('text',{class:'axisname',x:14,y:(T+B)/2,'text-anchor':'middle',transform:`rotate(-90 14 ${(T+B)/2})`},'Pokémon (Gemas) →'));
   const up=pts.filter(p=>p.level>now.level&&[200,500,1000,2000,5000,10000].includes(p.level)).slice(0,3);
-  const nodes=[el('h4',null,'Preço por nível'),chart,el('p','small',`A mesma ficha em outros níveis, sem Adicionais${add>0?` (eles somam ${gems(add)} Gemas em qualquer nível)`:''}.${Number.isFinite(r.dropLevel)?` Começa no Nv ${gems(r.dropLevel)}, o nível da hunt.`:''} A curva é a mesma para todas as espécies.`)];
+  const nodes=[el('h4',null,'Preço por nível'),chart,el('p','small',`A mesma ficha em outros níveis, sem Adicionais${add>0?` (eles somam ${gems(add)} Gemas em qualquer nível)`:''}.${Number.isFinite(r.dropLevel)?` Começa no Nv ${gems(r.dropLevel)}, o nível da hunt.`:''} Cada ponto é calculado como se a ficha estivesse naquele nível. Subir de nível não baixa o preço: se as vendas parecidas de um nível derem menos, fica o valor do nível anterior.`)];
   if(up.length)nodes.push(el('p','small',`Se upar antes de vender: ${up.map(p=>`Nv ${gems(p.level)} ≈ ${gems(p.median)} Gemas (+${pct(p.median/now.median-1)}%)`).join(' · ')}.`));
   return nodes;
  }
@@ -333,6 +333,7 @@
  function render(r){
   const nodes=[],who=el('div','who'),title=el('div');
   title.append(el('h3',null,`${r.name}${r.shiny?' shiny':''} · Nv ${gems(r.level)}`),types(r.types),sheetStats(r),tags(r));who.append(sprite(r.speciesId,r.shiny,false),title);nodes.push(who);
+  if(r.simFrom)nodes.push(el('p','small simnote',`Simulação a partir da ficha de ${r.simFrom.name} Nv ${gems(r.simFrom.level)}.${r.speciesId!==r.simFrom.id&&megaBaseOf(r.speciesId)!==r.simFrom.id?' Não inclui o custo de evoluir.':''}`));
   if(!r.available)nodes.push(el('p','error','Poucas vendas para comparar este Pokémon.'));
   else{
    const prices=el('div','prices ruler');
@@ -394,15 +395,35 @@
   const fmt=v=>v.toLocaleString('pt-BR',{maximumFractionDigits:2});
   return `Nota ${fmt(now)}: abaixo de 3,5${finals.some(f=>f.id!==e.id)?` e nem na última evolução chega a 3,5 (no máximo ${fmt(best)})`:''}. O precificador não calcula preço para Pokémon com nota abaixo de 3,5.`;
  }
+ // Simular (06/11/2026): a mesma ficha numa evolução à frente ou num nível maior, pelo mesmo cálculo de uma ficha colada.
+ // Só para a frente: quem já evoluiu ou upou não volta. A Nota é a calculada para a forma; a Mega soma a pedra.
+ function formsAhead(e){const out=[],seen=new Set(),visit=id=>{const s=central.species.get(id);if(!s||seen.has(id))return;seen.add(id);out.push(s);for(const k of s.evo||[])visit(k);for(const m of central.megas.get(id)||[])visit(m);};visit(e.id);return out;}
+ function setupSim(sheet,keep){
+  const e=speciesOf(sheet),select=$('simforma'),level=$('simnivel');
+  $('sim').hidden=!e||!(sheet.level>0);if($('sim').hidden)return;
+  const forms=formsAhead(e),chosen=keep&&select.value?select.value:String(e.id);
+  select.replaceChildren(...forms.map(f=>{const o=el('option',null,f.n);o.value=String(f.id);return o;}));
+  select.value=chosen;$('simformabox').hidden=forms.length<2;
+  level.min=String(sheet.level);level.max=String(Math.max(MAX_LEVEL,sheet.level));if(!keep)level.value=String(sheet.level);
+ }
+ function simulated(sheet){
+  const e=speciesOf(sheet);if(!e||$('sim').hidden)return null;
+  const form=central.species.get(Number($('simforma').value))||e,typed=Math.round(Number($('simnivel').value))||sheet.level,level=Math.max(sheet.level,Math.min(Math.max(MAX_LEVEL,sheet.level),typed));
+  $('simnivel').value=String(level);
+  const same=form.id===e.id&&level===sheet.level;$('simlimpar').hidden=same;if(same)return null;
+  return {...sheet,nome:form.n,level,nota:form.id===e.id?sheet.nota:PokeIdleNota.create(central.species).nota(form.id,sheet)};
+ }
+ function clearSim(){$('simforma').value=String(speciesOf(lastSheet).id);$('simnivel').value=String(lastSheet.level);compute();}
  function price(event){
   event.preventDefault();
+  $('sim').hidden=true;
   const text=$('ficha').value;if(!text.trim())return error('Cole o texto do botão "Copiar p/ ChatGPT" da ficha.');
   const sheet=PokeIdleFicha.parse(text);
   if(!sheet.nome)return error('Não encontrei a espécie no texto. Use o botão "Copiar p/ ChatGPT" da ficha e cole o texto inteiro.');
-  pricedKey=keyOf(sheet);$('reset').hidden=true;
+  const keep=keyOf(sheet)===pricedKey;pricedKey=keyOf(sheet);$('reset').hidden=true;
   // Trava de nota (03/11/2026): abaixo de 3,5 só precifica se a última evolução chegar a 3,5 (Mega não conta).
   const lock=notaLock(sheet);if(lock)return error(lock);
-  lastSheet=sheet;compute();
+  lastSheet=sheet;setupSim(sheet,keep);compute();
  }
  // Preço por unidade dos Adicionais digitado pelo usuário (itemId → Gemas), guardado neste navegador: vale só para os
  // Adicionais deste Pokémon; as vendas comparadas continuam com o preço do item no dia de cada venda.
@@ -410,11 +431,36 @@
  const loadItems=()=>{try{const v=JSON.parse(localStorage.getItem(ITEM_KEY)||'{}');return v&&typeof v==='object'?v:{};}catch{return {};}};
  const saveItems=v=>{try{localStorage.setItem(ITEM_KEY,JSON.stringify(v));}catch{}};
  function setItem(id,unit){const v=loadItems();if(unit>0)v[id]=unit;else delete v[id];saveItems(v);compute();}
+ // Cada ponto do gráfico refaz o cálculo de uma ficha colada naquele nível, para bater com o simulador. O byLevel do motor só
+ // aplica o fator da curva geral e mantém as vendas parecidas do nível atual; ele divergia até ~19% no Nv 1000 (06/11/2026).
+ // Mais nível não baixa o preço (pedido do usuário): uma queda é acaso das vendas daquele nível. A partir da ficha colada (anchor),
+ // que fica como o motor calculou, cada nível para cima fica no máximo até ali e cada um para baixo no mínimo.
+ const fits={};
+ function levelPrices(input,r,anchor){
+  if(!r.available)return [];
+  const fit=fits[r.shiny]??=P.marketFit(rows.filter(x=>x.shiny===r.shiny)),quote=P.itemQuotes(precos.itens),now=Date.parse(precos.geradoEm),bias=precos.correcao?.bias;
+  const opts={addons:0,typesOf:id=>central.species.get(id)?.t||[],megaUnit:(shiny,at)=>quote(shiny?P.MEGA_SHINY:P.MEGA,at)??0,weights:precos.confianca?.pesos,fit,...(Number.isFinite(bias)?{bias}:{})};
+  const out=[],grid=[...(r.byLevel||[])];if(!grid.some(p=>p.level===anchor))grid.push({level:anchor,current:false,drop:false});grid.sort((a,b)=>a.level-b.level);
+  for(const p of grid){
+   const target=P.describe(central,{speciesId:r.speciesId,level:p.level,potencia:input.potencia,quality:input.quality,shiny:r.shiny,ivs:input.ivs,tmElemental:input.tmElemental,tmAoe:input.tmAoe,refino:{}});
+   const e=target&&P.neighbors({...target,at:now,nota:Number.isFinite(input.nota)?input.nota:null},rows,opts);
+   if(e)out.push({level:p.level,current:p.current,drop:p.drop,low:e.low,median:e.median,high:e.high});
+  }
+  const i=out.findIndex(p=>p.level===anchor);if(i<0)return out;
+  const hold=(p,q,f)=>{for(const k of ['low','median','high'])p[k]=f(p[k],q[k]);};
+  for(let j=i+1;j<out.length;j++)hold(out[j],out[j-1],Math.max);
+  for(let j=i-1;j>=0;j--)hold(out[j],out[j+1],Math.min);
+  return out;
+ }
  function compute(){
-  const sheet=lastSheet;if(!sheet)return;
+  if(!lastSheet)return;
+  const sim=simulated(lastSheet),sheet=sim||lastSheet,simFrom=sim?{name:speciesOf(lastSheet).n,id:speciesOf(lastSheet).id,level:lastSheet.level}:null;
   // O tipo do Z-Move não muda o preço (o fragmento é o mesmo): vai um tipo qualquer e a linha mostra só "Z-Move".
-  try{const r=P.priceSheet(central,{...sheet,nota:notaOf(sheet),tmElemental:$('zmove').checked?'NORMAL':null,tmAoe:$('aoe').checked},{rows,itemPrices:precos.itens,currentItems:loadItems(),now:Date.parse(precos.geradoEm),confidenceWeights:precos.confianca?.pesos,bias:precos.correcao?.bias});
-   render({...r,nota:sheet.nota,notaPreco:notaOf(sheet),potencia:sheet.potencia,quality:sheet.quality,ivSum:Object.values(sheet.ivs||{}).reduce((s,v)=>s+v,0),parts:r.parts.map(p=>/^Z-Move/.test(p.label)?{...p,label:'Z-Move'}:p),missing:(r.missing||[]).map(l=>/^Z-Move/.test(l)?'Z-Move':l)});}
+  try{const input={...sheet,nota:notaOf(sheet),tmElemental:$('zmove').checked?'NORMAL':null,tmAoe:$('aoe').checked},r=P.priceSheet(central,input,{rows,itemPrices:precos.itens,currentItems:loadItems(),now:Date.parse(precos.geradoEm),confidenceWeights:precos.confianca?.pesos,bias:precos.correcao?.bias});
+   const byLevel=levelPrices(input,r,lastSheet.level),here=sim&&r.available&&byLevel.find(p=>p.current),add=r.median-r.base;
+   // Simulação de nível: o preço é o mesmo ponto do gráfico.
+   if(here)Object.assign(r,{low:here.low+add,median:here.median+add,high:here.high+add,base:here.median});
+   render({...r,byLevel,simFrom,nota:sheet.nota,notaPreco:notaOf(sheet),potencia:sheet.potencia,quality:sheet.quality,ivSum:Object.values(sheet.ivs||{}).reduce((s,v)=>s+v,0),parts:r.parts.map(p=>/^Z-Move/.test(p.label)?{...p,label:'Z-Move'}:p),missing:(r.missing||[]).map(l=>/^Z-Move/.test(l)?'Z-Move':l)});}
   catch(e){error(e.message);}
  }
  // Linha de um Adicional com o preço por unidade editável (Enter ou sair do campo recalcula; "cotação" volta ao do dia).
@@ -431,6 +477,8 @@
  async function start(){
   $('form').addEventListener('submit',price);$('ficha').addEventListener('input',pasted);
   for(const id of ADDONS)$(id).addEventListener('change',()=>{$('reset').hidden=true;});
+  $('simforma').addEventListener('change',compute);$('simnivel').addEventListener('change',compute);$('simlimpar').addEventListener('click',clearSim);
+  $('simnivel').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();compute();}});
   try{
    const response=await fetch('precos.json',{cache:'no-cache'});if(!response.ok)throw Error(response.status);
    precos=await response.json();rows=PokeIdleCentral.linhas(precos);central=PokeIdleCentral.create(window);

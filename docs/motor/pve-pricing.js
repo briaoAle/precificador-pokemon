@@ -3,7 +3,7 @@
 'use strict';
 const B=root.PokeIdleMarketBonuses;
 const STATS=['hp','atk','def','spAtk','spDef','speed'];
-const LEVEL_BAND=.5,MIN_MARKET=30,ITEM_DAYS=3,FAR_ITEM_DAYS=5,DAY_MS=86400000,SAO_PAULO_MS=-3*3600000,LATE_READ_MS=2*3600000;
+const MIN_PRICE=2,LEVEL_BAND=.5,MIN_MARKET=30,ITEM_DAYS=3,FAR_ITEM_DAYS=5,DAY_MS=86400000,SAO_PAULO_MS=-3*3600000,LATE_READ_MS=2*3600000;
 const MEGA=70014,MEGA_SHINY=70015,PER_ADDON=10;
 const day=at=>new Date(at+SAO_PAULO_MS).toISOString().slice(0,10);
 const yes=v=>v===true||v===1||v==='true';
@@ -71,7 +71,7 @@ function estimate(target,rows,{k=5,variant='factor',addons=0}={}){
  const weight=variant==='curve'&&n<3?0:w;
  const spread=n>=8?residuals.map(x=>x-(variant==='factor'?speciesPart:0)):market.map(r=>r.logBase-at(curve,r.pve));
  const lo=quantile(spread,.25)-quantile(spread,.5),hi=quantile(spread,.75)-quantile(spread,.5);
- const price=x=>Math.max(1,Math.round(Math.exp(x)+addons));
+ const price=x=>Math.max(MIN_PRICE,Math.round(Math.exp(x)+addons));
  return {low:price(center+lo),median:price(center),high:price(center+hi),base:Math.exp(center),addons,weight,familyCount:n,marketCount:market.length,familyName:target.familyName,
   sources:{family:family.length,market:market.length,levelNear:near.length>=MIN_MARKET},
   uncertain:{family:family.filter(r=>r.uncertain).length,market:market.filter(r=>r.uncertain).length}};
@@ -122,7 +122,7 @@ function neighbors(target,rows,{addons=0,typesOf=()=>[],megaUnit=()=>0,weights,c
  }
  if(!pts.length)return null;
  const mid=weightedQuantile(pts,.5),lo=weightedQuantile(pts,.25)-mid,hi=weightedQuantile(pts,.75)-mid,center=fit(Math.log(target.pve),Math.log(target.level),target.nota)+mid-bias;
- const price=x=>Math.max(1,Math.round(Math.exp(x)+addons)),sum=f=>pts.filter(f).reduce((s,p)=>s+p.w,0),W=sum(()=>true);
+ const price=x=>Math.max(MIN_PRICE,Math.round(Math.exp(x)+addons)),sum=f=>pts.filter(f).reduce((s,p)=>s+p.w,0),W=sum(()=>true);
  const close=pts.filter(p=>p.layer<=1),cw=close.reduce((s,p)=>s+p.w,0),neff=cw?cw**2/close.reduce((s,p)=>s+p.w*p.w,0):0;
  const parts={proximidade:neff/(neff+5),certeza:sum(p=>!p.uncertain)/W,consistencia:Math.exp(-(hi-lo)),ampliacao:sum(p=>p.layer===0)/W};
  const family=same.filter(r=>r.family===target.family);
@@ -166,7 +166,7 @@ function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.n
  const comps=e.influence.map(({r,share,closeness})=>({share,closeness:Math.round(closeness*1000)/1000,at:r.at,price:r.price,base:Math.round(r.base),level:r.level,pve:Math.round(r.pve),nota:r.nota??null,speciesId:r.speciesId,name:r.name,shiny:r.shiny,uncertain:r.uncertain===true,refined:r.refined===true,types:central.species.get(r.speciesId)?.t||[]}));
  const drop=dropLevel(central,rows,speciesId),top=rows.reduce((m,r)=>r.shiny===target.shiny&&r.level>m?r.level:m,target.level),from=Math.min(target.level,drop);
  const levels=[...new Set([...LEVEL_STEPS.filter(l=>l>from&&l<=top),from,target.level])].sort((a,b)=>a-b),here=fit.level(Math.log(target.level));
- const byLevel=levels.map(level=>{const k=Math.exp(fit.level(Math.log(level))-here),p=x=>Math.max(1,Math.round(x*k+known));return {level,low:p(e.low-known),median:p(e.base),high:p(e.high-known),current:level===target.level,drop:level===drop};});
+ const byLevel=levels.map(level=>{const k=Math.exp(fit.level(Math.log(level))-here),p=x=>Math.max(MIN_PRICE,Math.round(x*k+known));return {level,low:p(e.low-known),median:p(e.base),high:p(e.high-known),current:level===target.level,drop:level===drop};});
  return {...result,available:true,low:e.low,median:e.median,high:e.high,byLevel,dropLevel:drop,base:Math.round(e.base),weight:e.weight,familyCount:e.familyCount,marketCount:e.marketCount,uncertain:e.uncertain,confidenceParts:e.parts,confidence:e.confidence,comps};
 }
 root.PokeIdlePvePricing={describe,prepare,estimate,neighbors,marketFit,confidence,priceSheet,pav,at,itemQuotes,day,MEGA,MEGA_SHINY,MODEL,NEIGHBORS,CONFIDENCE};

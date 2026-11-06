@@ -4,6 +4,8 @@
  'use strict';
  const NOVIDADES=[
   {data:'06/11/2026',itens:[
+   'Depois de precificar, dá para simular o mesmo Pokémon numa evolução à frente ou num nível maior.',
+   'O gráfico "Preço por nível" agora faz, em cada nível, o mesmo cálculo do preço, em vez de usar uma curva geral, e subir de nível não baixa o preço. Os valores batem com a simulação.',
    'Botão "Apoie o projeto" no topo da página: uma doação opcional, por um serviço de Pix externo. O site continua gratuito.',
    'Vender rápido, Preço justo e Esperar agora aparecem em uma régua, que diz quantas vendas costumam sair fora de cada ponta.',
    'A tabela de vendas ganhou a coluna Peso: quanto cada venda conta de fato no preço.',

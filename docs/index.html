@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Estimativa do preço de venda de um Pokémon do PokeIdle em Gemas, a partir das vendas recentes do mercado.">
 <title>Precificador de Pokémon</title>
-<link rel="stylesheet" href="app.css?v=0aacdf9a">
+<link rel="stylesheet" href="app.css?v=d71787da">
 </head>
 <body>
 <header class="top">
@@ -32,6 +32,14 @@
    <label class="check"><input type="checkbox" id="zmove"> Z-Move</label>
    <label class="check"><input type="checkbox" id="aoe"> AoE</label>
    <p id="reset" class="hint warn" role="status" hidden>Outro Pokémon colado: Z-Move e AoE foram desmarcados. Marque os que este tem.</p>
+  </fieldset>
+  <fieldset id="sim" hidden>
+   <legend>Simular</legend>
+   <div class="simrow">
+    <div id="simformabox"><label for="simforma">Evolução</label><select id="simforma"></select></div>
+    <div><label for="simnivel">Nível</label><input type="number" id="simnivel" step="1" inputmode="numeric"></div>
+   </div>
+   <button type="button" id="simlimpar" class="link" hidden>Voltar à ficha</button>
   </fieldset>
   <button type="submit" id="go" disabled>Precificar</button>
   <p id="status" class="muted small" role="status">Carregando vendas…</p>
@@ -58,11 +66,11 @@
 <script src="catalogo/especies.js?v=f74579f7" defer></script>
 <script src="catalogo/pve-power.js?v=91e6c4a9" defer></script>
 <script src="motor/market-bonuses.js?v=2b8fb2c3" defer></script>
-<script src="motor/pve-pricing.js?v=aa7b3457" defer></script>
+<script src="motor/pve-pricing.js?v=0fb1ad8c" defer></script>
 <script src="js/central.js?v=db32209b" defer></script>
 <script src="js/ficha.js?v=053e6405" defer></script>
 <script src="js/nota.js?v=f0647af1" defer></script>
-<script src="js/novidades.js?v=d7a8ede3" defer></script>
-<script src="js/app.js?v=8a972b22" defer></script>
+<script src="js/novidades.js?v=2069850f" defer></script>
+<script src="js/app.js?v=65bc604c" defer></script>
 </body>
 </html>
