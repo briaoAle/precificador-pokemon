@@ -414,16 +414,21 @@
   return {...sheet,nome:form.n,level,nota:form.id===e.id?sheet.nota:PokeIdleNota.create(central.species).nota(form.id,sheet)};
  }
  function clearSim(){$('simforma').value=String(speciesOf(lastSheet).id);$('simnivel').value=String(lastSheet.level);compute();}
+ // A URL guarda a ficha precificada, para copiar e divulgar; a simulação não entra. Com erro, fica sem ficha. replaceState não dispara hashchange.
+ function setLink(sheet){
+  const hash=sheet?'#'+PokeIdleFicha.toLink(sheet,{zMove:$('zmove').checked,aoe:$('aoe').checked}):'';
+  try{history.replaceState(null,'',location.pathname+location.search+hash);}catch{}
+ }
  function price(event){
   event.preventDefault();
-  $('sim').hidden=true;
+  $('sim').hidden=true;setLink(null);
   const text=$('ficha').value;if(!text.trim())return error('Cole o texto do botão "Copiar p/ ChatGPT" da ficha.');
   const sheet=PokeIdleFicha.parse(text);
   if(!sheet.nome)return error('Não encontrei a espécie no texto. Use o botão "Copiar p/ ChatGPT" da ficha e cole o texto inteiro.');
   const keep=keyOf(sheet)===pricedKey;pricedKey=keyOf(sheet);$('reset').hidden=true;
   // Trava de nota (03/11/2026): abaixo de 3,5 só precifica se a última evolução chegar a 3,5 (Mega não conta).
   const lock=notaLock(sheet);if(lock)return error(lock);
-  lastSheet=sheet;setupSim(sheet,keep);compute();
+  lastSheet=sheet;setupSim(sheet,keep);if(compute())setLink(sheet);
  }
  // Preço por unidade dos Adicionais digitado pelo usuário (itemId → Gemas), guardado neste navegador: vale só para os
  // Adicionais deste Pokémon; as vendas comparadas continuam com o preço do item no dia de cada venda.
@@ -432,12 +437,13 @@
  const saveItems=v=>{try{localStorage.setItem(ITEM_KEY,JSON.stringify(v));}catch{}};
  function setItem(id,unit){const v=loadItems();if(unit>0)v[id]=unit;else delete v[id];saveItems(v);compute();}
  function compute(){
-  if(!lastSheet)return;
+  if(!lastSheet)return false;
   const sim=simulated(lastSheet),sheet=sim||lastSheet,simFrom=sim?{name:speciesOf(lastSheet).n,id:speciesOf(lastSheet).id,level:lastSheet.level}:null;
   // O tipo do Z-Move não muda o preço (o fragmento é o mesmo): vai um tipo qualquer e a linha mostra só "Z-Move".
   try{const r=P.priceSheet(central,{...sheet,nota:notaOf(sheet),tmElemental:$('zmove').checked?'NORMAL':null,tmAoe:$('aoe').checked},{rows,itemPrices:precos.itens,currentItems:loadItems(),now:Date.parse(precos.geradoEm),confidenceWeights:precos.confianca?.pesos,bias:precos.correcao?.bias});
    render({...r,simFrom,nota:sheet.nota,notaPreco:notaOf(sheet),potencia:sheet.potencia,quality:sheet.quality,ivSum:Object.values(sheet.ivs||{}).reduce((s,v)=>s+v,0),parts:r.parts.map(p=>/^Z-Move/.test(p.label)?{...p,label:'Z-Move'}:p),missing:(r.missing||[]).map(l=>/^Z-Move/.test(l)?'Z-Move':l)});}
-  catch(e){error(e.message);}
+  catch(e){error(e.message);return false;}
+  return true;
  }
  // Linha de um Adicional com o preço por unidade editável (Enter ou sair do campo recalcula; "cotação" volta ao do dia).
  function addonRow(p){
@@ -450,6 +456,11 @@
   if(mine){const back=el('button','link','cotação');back.type='button';back.title=`Voltar à última cotação lida (${p.quote!=null?gems(p.quote):'?'})`;back.addEventListener('click',()=>setItem(p.id,0));label.append(' ',back);}
   li.append(label,el('b',null,p.total!=null?gems(p.total):'sem cotação'));return li;
  }
+ // Link com a ficha na URL: preenche a ficha e os Adicionais e segue o caminho normal do botão Precificar.
+ function openLink(){
+  const link=PokeIdleFicha.fromLink(location.hash);if(!link)return;
+  $('ficha').value=link.text;$('zmove').checked=link.zMove;$('aoe').checked=link.aoe;$('go').click();
+ }
  async function start(){
   $('form').addEventListener('submit',price);$('ficha').addEventListener('input',pasted);
   for(const id of ADDONS)$(id).addEventListener('change',()=>{$('reset').hidden=true;});
@@ -460,6 +471,7 @@
    precos=await response.json();rows=PokeIdleCentral.linhas(precos);central=PokeIdleCentral.create(window);
    $('status').textContent=`Vendas lidas em ${when(Date.parse(precos.geradoEm))} · ${gems(precos.vendas.length)} vendas dos últimos ${precos.janelaDias} dias.`;
    $('go').disabled=false;
+   openLink();addEventListener('hashchange',openLink);
   }catch(e){$('status').textContent='Não foi possível carregar as vendas. Recarregue a página.';$('status').classList.add('warn');}
  }
  start();

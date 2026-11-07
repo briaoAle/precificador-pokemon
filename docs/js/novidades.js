@@ -4,6 +4,7 @@
  'use strict';
  const NOVIDADES=[
   {data:'06/11/2026',itens:[
+   'Depois de precificar, o endereço da página guarda o Pokémon e os Adicionais: é só copiar a URL para mostrar o mesmo Pokémon a alguém. O preço é recalculado ao abrir, com as vendas do momento.',
    'Depois de precificar, dá para simular o mesmo Pokémon numa evolução à frente ou num nível maior.',
    {riscado:'O gráfico "Preço por nível" agora faz, em cada nível, o mesmo cálculo do preço, em vez de usar uma curva geral, e subir de nível não baixa o preço. Os valores batem com a simulação.',nota:'REVERTIDO'},
    'Botão "Apoie o projeto" no topo da página: uma doação opcional, por um serviço de Pix externo. O site continua gratuito.',

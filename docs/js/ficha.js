@@ -31,6 +31,29 @@
   // "Nota da Calculadora: 3.575 de 10 (Razoável)": entra no preço e no gráfico "Por nota" (sem ela, o preço usa a calculada).
   return {nome,level:integer(field('n[íi]vel|level')),potencia,quality:decimal(field('qualidade|quality')),nota:decimal(field('nota(?: da calculadora)?|calculator score')),shiny,ivs,refinoActual};
  }
- const api={parse};
+ // Link para abrir a página com a ficha preenchida: só a espécie e os números do cálculo, depois do "#", que o
+ // navegador não envia a nenhum servidor. fromLink refaz o texto no formato de parse e a página segue o caminho normal.
+ const ORDER=[['hp','HP'],['atk','ATK'],['def','DEF'],['spAtk','SP.ATK'],['spDef','SP.DEF'],['speed','SPD']];
+ function toLink(sheet,{zMove=false,aoe=false}={}){
+  const p=new URLSearchParams({nome:sheet.nome,nv:sheet.level,p:sheet.potencia,q:sheet.quality});
+  if(Number.isFinite(sheet.nota))p.set('n',sheet.nota);
+  if(sheet.shiny)p.set('s','1');
+  p.set('iv',ORDER.map(([k])=>sheet.ivs?.[k]??'').join('-'));
+  if(ORDER.some(([k])=>sheet.refinoActual?.[k]>0))p.set('r',ORDER.map(([k])=>sheet.refinoActual?.[k]||0).join('-'));
+  if(zMove)p.set('z','1');
+  if(aoe)p.set('a','1');
+  return p.toString();
+ }
+ function fromLink(hash){
+  const p=new URLSearchParams(String(hash||'').replace(/^#/,'')),nome=(p.get('nome')||'').replace(/[\u0000-\u001f|]/g,' ').trim().slice(0,60);
+  if(!nome)return null;
+  const num=k=>{const m=(p.get(k)||'').match(/^\d{1,7}(?:\.\d{1,20})?$/);return m?m[0]:'';},list=k=>(p.get(k)||'').split('-'),int=v=>/^\d{1,7}$/.test(v||'')?v:'';
+  const ivs=list('iv'),refino=list('r'),potencia=/^[1-5]$/.test(p.get('p')||'')?p.get('p'):'',quality=Number(num('q'))>=.8&&Number(num('q'))<=1.8?num('q'):'';
+  const text=[`- Espécie: ${nome}`,`- Shiny: ${p.get('s')==='1'?'sim':'não'}`,`- Nível: ${int(p.get('nv'))}`,`- Potência: P${potencia}`,`- Qualidade: ${quality}`,
+   ...(num('n')?[`- Nota da Calculadora: ${num('n')}`]:[]),'','| Stat | Base | IV |',
+   ...ORDER.map(([,label],i)=>`| ${label} | ${int(refino[i])>0?'+'+int(refino[i]):''} | ${int(ivs[i])} |`)].join('\n');
+  return {text,zMove:p.get('z')==='1',aoe:p.get('a')==='1'};
+ }
+ const api={parse,toLink,fromLink};
  if(typeof module==='object'&&module.exports)module.exports=api;else root.PokeIdleFicha=api;
 })(typeof window==='object'?window:globalThis);
