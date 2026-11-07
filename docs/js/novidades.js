@@ -1,11 +1,11 @@
 // Novidades do site: o botão no cabeçalho abre uma janela com o que mudou, da mais recente para a mais antiga.
-// Para uma nova versão, acrescente uma entrada no começo de NOVIDADES (data e itens em texto simples).
+// Para uma nova versão, acrescente uma entrada no começo de NOVIDADES (data e itens em texto simples; {riscado,nota} para um item desfeito).
 (function(){
  'use strict';
  const NOVIDADES=[
   {data:'06/11/2026',itens:[
    'Depois de precificar, dá para simular o mesmo Pokémon numa evolução à frente ou num nível maior.',
-   'O gráfico "Preço por nível" agora faz, em cada nível, o mesmo cálculo do preço, em vez de usar uma curva geral, e subir de nível não baixa o preço. Os valores batem com a simulação.',
+   {riscado:'O gráfico "Preço por nível" agora faz, em cada nível, o mesmo cálculo do preço, em vez de usar uma curva geral, e subir de nível não baixa o preço. Os valores batem com a simulação.',nota:'REVERTIDO'},
    'Botão "Apoie o projeto" no topo da página: uma doação opcional, por um serviço de Pix externo. O site continua gratuito.',
    'Vender rápido, Preço justo e Esperar agora aparecem em uma régua, que diz quantas vendas costumam sair fora de cada ponta.',
    'A tabela de vendas ganhou a coluna Peso: quanto cada venda conta de fato no preço.',
@@ -53,7 +53,7 @@
   const button=el('button','newsbtn');button.type='button';button.append(icon(),el('span',null,'Novidades'));button.setAttribute('aria-haspopup','dialog');
   const dialog=el('dialog','news'),head=el('div','newshead'),close=el('button','newsclose','Fechar');close.type='button';
   dialog.setAttribute('aria-labelledby','news-title');const title=el('h2',null,'Novidades');title.id='news-title';head.append(title,close);dialog.append(head);
-  for(const v of NOVIDADES){const list=el('ul');for(const t of v.itens)list.append(el('li',null,t));dialog.append(el('h3',null,v.data),list);}
+  for(const v of NOVIDADES){const list=el('ul');for(const t of v.itens){const li=el('li');if(t.riscado)li.append(el('s',null,t.riscado),' '+t.nota);else li.textContent=t;list.append(li);}dialog.append(el('h3',null,v.data),list);}
   button.addEventListener('click',()=>dialog.showModal());
   close.addEventListener('click',()=>dialog.close());
   // Clique fora da janela (no fundo escurecido) também fecha.

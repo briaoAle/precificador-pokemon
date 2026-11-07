@@ -228,11 +228,11 @@
   if(Number.isFinite(r.nota))item('Nota',METRICS.nota.fmt(r.nota));if(Number.isFinite(r.pve))item('Poder no PvE',gems(r.pve),'Sem Adicionais, no Nv 100 e na última evolução');
   if(Number.isInteger(r.potencia))item('','P'+r.potencia,'Potência');if(Number.isFinite(r.quality))item('Qualidade',r.quality.toLocaleString('pt-BR',{maximumFractionDigits:2}));if(r.ivSum)item('IV',String(r.ivSum));
   return box;}
- // Preço por nível (04/11/2026): a mesma ficha em outros níveis (levelPrices), para o usuário ver quanto ganha
+ // Preço por nível (04/11/2026): a mesma ficha em outros níveis (priceSheet.byLevel), para o usuário ver quanto ganha
  // upando antes de vender. Nível em escala log; faixa entre Vender rápido e Esperar; o ponto amarelo é o nível atual.
  function levelChart(r){
   // Só o Pokémon (sem Adicionais): é a parte que muda ao upar; os Adicionais somam o mesmo em qualquer nível.
-  const add=r.median-r.base,pts=r.byLevel||[];if(pts.length<3)return [];
+  const add=r.median-r.base,pts=(r.byLevel||[]).map(p=>({...p,low:Math.max(MIN_GEMS,p.low-add),median:Math.max(MIN_GEMS,p.median-add),high:Math.max(MIN_GEMS,p.high-add)}));if(pts.length<3)return [];
   // Mesmo tamanho e margens do gráfico de vendas ao lado (scatter), para os quadros ficarem alinhados.
   const W=340,H=222,L=50,R=334,T=10,B=176,lx0=Math.log(pts[0].level),lx1=Math.log(pts.at(-1).level),top=Math.max(...pts.map(p=>p.high))*1.05;
   const X=lv=>L+(Math.log(lv)-lx0)/(lx1-lx0||1)*(R-L),Y=v=>B-v/top*(B-T);
@@ -252,7 +252,7 @@
   chart.append(svg('text',{x:L-6,y:B,'text-anchor':'end'},'0'),svg('text',{x:L-6,y:T+8,'text-anchor':'end'},gems(Math.round(top))));
   chart.append(svg('text',{class:'axisname',x:(L+R)/2,y:H-8,'text-anchor':'middle'},'Nível →'),svg('text',{class:'axisname',x:14,y:(T+B)/2,'text-anchor':'middle',transform:`rotate(-90 14 ${(T+B)/2})`},'Pokémon (Gemas) →'));
   const up=pts.filter(p=>p.level>now.level&&[200,500,1000,2000,5000,10000].includes(p.level)).slice(0,3);
-  const nodes=[el('h4',null,'Preço por nível'),chart,el('p','small',`A mesma ficha em outros níveis, sem Adicionais${add>0?` (eles somam ${gems(add)} Gemas em qualquer nível)`:''}.${Number.isFinite(r.dropLevel)?` Começa no Nv ${gems(r.dropLevel)}, o nível da hunt.`:''} Cada ponto é calculado como se a ficha estivesse naquele nível. Subir de nível não baixa o preço: se as vendas parecidas de um nível derem menos, fica o valor do nível anterior.`)];
+  const nodes=[el('h4',null,'Preço por nível'),chart,el('p','small',`A mesma ficha em outros níveis, sem Adicionais${add>0?` (eles somam ${gems(add)} Gemas em qualquer nível)`:''}.${Number.isFinite(r.dropLevel)?` Começa no Nv ${gems(r.dropLevel)}, o nível da hunt.`:''} A curva é a mesma para todas as espécies.`)];
   if(up.length)nodes.push(el('p','small',`Se upar antes de vender: ${up.map(p=>`Nv ${gems(p.level)} ≈ ${gems(p.median)} Gemas (+${pct(p.median/now.median-1)}%)`).join(' · ')}.`));
   return nodes;
  }
@@ -431,36 +431,12 @@
  const loadItems=()=>{try{const v=JSON.parse(localStorage.getItem(ITEM_KEY)||'{}');return v&&typeof v==='object'?v:{};}catch{return {};}};
  const saveItems=v=>{try{localStorage.setItem(ITEM_KEY,JSON.stringify(v));}catch{}};
  function setItem(id,unit){const v=loadItems();if(unit>0)v[id]=unit;else delete v[id];saveItems(v);compute();}
- // Cada ponto do gráfico refaz o cálculo de uma ficha colada naquele nível, para bater com o simulador. O byLevel do motor só
- // aplica o fator da curva geral e mantém as vendas parecidas do nível atual; ele divergia até ~19% no Nv 1000 (06/11/2026).
- // Mais nível não baixa o preço (pedido do usuário): uma queda é acaso das vendas daquele nível. A partir da ficha colada (anchor),
- // que fica como o motor calculou, cada nível para cima fica no máximo até ali e cada um para baixo no mínimo.
- const fits={};
- function levelPrices(input,r,anchor){
-  if(!r.available)return [];
-  const fit=fits[r.shiny]??=P.marketFit(rows.filter(x=>x.shiny===r.shiny)),quote=P.itemQuotes(precos.itens),now=Date.parse(precos.geradoEm),bias=precos.correcao?.bias;
-  const opts={addons:0,typesOf:id=>central.species.get(id)?.t||[],megaUnit:(shiny,at)=>quote(shiny?P.MEGA_SHINY:P.MEGA,at)??0,weights:precos.confianca?.pesos,fit,...(Number.isFinite(bias)?{bias}:{})};
-  const out=[],grid=[...(r.byLevel||[])];if(!grid.some(p=>p.level===anchor))grid.push({level:anchor,current:false,drop:false});grid.sort((a,b)=>a.level-b.level);
-  for(const p of grid){
-   const target=P.describe(central,{speciesId:r.speciesId,level:p.level,potencia:input.potencia,quality:input.quality,shiny:r.shiny,ivs:input.ivs,tmElemental:input.tmElemental,tmAoe:input.tmAoe,refino:{}});
-   const e=target&&P.neighbors({...target,at:now,nota:Number.isFinite(input.nota)?input.nota:null},rows,opts);
-   if(e)out.push({level:p.level,current:p.current,drop:p.drop,low:e.low,median:e.median,high:e.high});
-  }
-  const i=out.findIndex(p=>p.level===anchor);if(i<0)return out;
-  const hold=(p,q,f)=>{for(const k of ['low','median','high'])p[k]=f(p[k],q[k]);};
-  for(let j=i+1;j<out.length;j++)hold(out[j],out[j-1],Math.max);
-  for(let j=i-1;j>=0;j--)hold(out[j],out[j+1],Math.min);
-  return out;
- }
  function compute(){
   if(!lastSheet)return;
   const sim=simulated(lastSheet),sheet=sim||lastSheet,simFrom=sim?{name:speciesOf(lastSheet).n,id:speciesOf(lastSheet).id,level:lastSheet.level}:null;
   // O tipo do Z-Move não muda o preço (o fragmento é o mesmo): vai um tipo qualquer e a linha mostra só "Z-Move".
-  try{const input={...sheet,nota:notaOf(sheet),tmElemental:$('zmove').checked?'NORMAL':null,tmAoe:$('aoe').checked},r=P.priceSheet(central,input,{rows,itemPrices:precos.itens,currentItems:loadItems(),now:Date.parse(precos.geradoEm),confidenceWeights:precos.confianca?.pesos,bias:precos.correcao?.bias});
-   const byLevel=levelPrices(input,r,lastSheet.level),here=sim&&r.available&&byLevel.find(p=>p.current),add=r.median-r.base;
-   // Simulação de nível: o preço é o mesmo ponto do gráfico.
-   if(here)Object.assign(r,{low:here.low+add,median:here.median+add,high:here.high+add,base:here.median});
-   render({...r,byLevel,simFrom,nota:sheet.nota,notaPreco:notaOf(sheet),potencia:sheet.potencia,quality:sheet.quality,ivSum:Object.values(sheet.ivs||{}).reduce((s,v)=>s+v,0),parts:r.parts.map(p=>/^Z-Move/.test(p.label)?{...p,label:'Z-Move'}:p),missing:(r.missing||[]).map(l=>/^Z-Move/.test(l)?'Z-Move':l)});}
+  try{const r=P.priceSheet(central,{...sheet,nota:notaOf(sheet),tmElemental:$('zmove').checked?'NORMAL':null,tmAoe:$('aoe').checked},{rows,itemPrices:precos.itens,currentItems:loadItems(),now:Date.parse(precos.geradoEm),confidenceWeights:precos.confianca?.pesos,bias:precos.correcao?.bias});
+   render({...r,simFrom,nota:sheet.nota,notaPreco:notaOf(sheet),potencia:sheet.potencia,quality:sheet.quality,ivSum:Object.values(sheet.ivs||{}).reduce((s,v)=>s+v,0),parts:r.parts.map(p=>/^Z-Move/.test(p.label)?{...p,label:'Z-Move'}:p),missing:(r.missing||[]).map(l=>/^Z-Move/.test(l)?'Z-Move':l)});}
   catch(e){error(e.message);}
  }
  // Linha de um Adicional com o preço por unidade editável (Enter ou sair do campo recalcula; "cotação" volta ao do dia).
