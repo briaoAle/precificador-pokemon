@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <meta name="description" content="Estimativa do preço de venda de um Pokémon do PokeIdle em Gemas, a partir das vendas recentes do mercado.">
 <title>Precificador de Pokémon</title>
-<link rel="stylesheet" href="app.css?v=d71787da">
+<link rel="stylesheet" href="app.css?v=c4152f98">
 </head>
 <body>
 <header class="top">
@@ -27,37 +27,47 @@
   </ol>
   <label for="ficha">Texto da ficha</label>
   <textarea id="ficha" rows="10" spellcheck="false" autocomplete="off" placeholder="Cole aqui o texto do botão Copiar p/ ChatGPT"></textarea>
-  <fieldset>
+  <fieldset class="checkrow">
    <legend>Adicionais</legend>
    <label class="check"><input type="checkbox" id="zmove"> Z-Move</label>
    <label class="check"><input type="checkbox" id="aoe"> AoE</label>
    <p id="reset" class="hint warn" role="status" hidden>Outro Pokémon colado: Z-Move e AoE foram desmarcados. Marque os que este tem.</p>
   </fieldset>
-  <fieldset id="sim" hidden>
-   <legend>Simular</legend>
-   <div class="simrow">
-    <div id="simformabox"><label for="simforma">Evolução</label><select id="simforma"></select></div>
-    <div><label for="simnivel">Nível</label><input type="number" id="simnivel" step="1" inputmode="numeric"></div>
-   </div>
-   <button type="button" id="simlimpar" class="link" hidden>Voltar à ficha</button>
-  </fieldset>
   <button type="submit" id="go" disabled>Precificar</button>
   <p id="status" class="muted small" role="status">Carregando vendas…</p>
  </form>
- <section id="result" class="card" aria-live="polite">
-  <h2>Preço em Gemas</h2>
-  <p class="muted">Cole a ficha e clique em Precificar. Exemplo do que aparece aqui:</p>
-  <div class="example">
-   <div class="prices ruler"><div class="price"><span>Vender rápido</span><b>10</b></div><div class="price main"><span>Preço justo</span><b>21</b></div><div class="price"><span>Esperar</span><b>62</b></div></div>
-   <div class="track"><i class="mark"></i></div>
+ <section class="card resultcard">
+  <div id="result" aria-live="polite">
+   <h2>Preço em Gemas</h2>
+   <p class="muted">Cole a ficha e clique em Precificar. O preço aparece nesta régua:</p>
+   <div class="pricerow">
+    <div class="gauge empty" aria-hidden="true">
+     <div class="price main"><span>Preço justo</span><b>–</b></div>
+     <div class="track"><i class="mark"></i></div>
+     <div class="ends"><div class="price"><span>Vender rápido</span><b>–</b></div><div class="price"><span>Esperar</span><b>–</b></div></div>
+    </div>
+    <div class="confblock">
+     <ul class="examplelist muted">
+      <li>A confiança do preço e o motivo quando ela é baixa.</li>
+      <li>Gráficos com as vendas da cadeia do Pokémon e o preço em outros níveis.</li>
+      <li>As vendas que mais pesaram e como o preço foi calculado.</li>
+     </ul>
+    </div>
+   </div>
   </div>
-  <ul class="examplelist muted">
-   <li>A confiança do preço e o motivo quando ela é baixa.</li>
-   <li>Gráficos com as vendas da cadeia do Pokémon e o preço em outros níveis.</li>
-   <li>As vendas que mais pesaram e como o preço foi calculado.</li>
-  </ul>
+  <div class="sidecols">
+   <div id="extras"></div>
+   <fieldset id="sim" hidden>
+    <legend>Simular</legend>
+    <div class="simrow">
+     <div id="simformabox"><label for="simforma">Evolução</label><select id="simforma"></select></div>
+     <div><label for="simnivel">Nível</label><input type="number" id="simnivel" step="1" inputmode="numeric"></div>
+    </div>
+    <button type="button" id="simlimpar" class="link" hidden>Voltar à ficha</button>
+   </fieldset>
+  </div>
  </section>
- <section id="charts" class="card wide" aria-live="polite" hidden></section>
+ <section id="charts" class="card wide" hidden></section>
 </main>
 <footer class="foot muted small">
  <p>Projeto independente, sem relação com os criadores do PokeIdle. Os preços são estimativas feitas a partir de vendas públicas do mercado do jogo e não garantem nada.</p>
@@ -70,7 +80,7 @@
 <script src="js/central.js?v=db32209b" defer></script>
 <script src="js/ficha.js?v=67ae4d1b" defer></script>
 <script src="js/nota.js?v=f0647af1" defer></script>
-<script src="js/novidades.js?v=13525276" defer></script>
-<script src="js/app.js?v=af4320d5" defer></script>
+<script src="js/novidades.js?v=e6b44783" defer></script>
+<script src="js/app.js?v=654861d8" defer></script>
 </body>
 </html>

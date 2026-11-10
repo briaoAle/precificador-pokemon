@@ -27,7 +27,8 @@
   return box;
  }
  // No celular o resultado fica abaixo do formulário: rola até ele se estiver fora da tela.
- function show(nodes,below=[]){const box=$('result'),wide=$('charts');box.replaceChildren(el('h2',null,'Preço em Gemas'),...nodes);
+ function show(nodes,below=[],extras=[]){const box=$('result'),wide=$('charts');box.replaceChildren(el('h2',null,'Preço em Gemas'),...nodes);
+  $('extras').replaceChildren(...extras);
   wide.replaceChildren(...below);wide.hidden=!below.length;
   if(box.getBoundingClientRect().top>innerHeight*.6)box.scrollIntoView({block:'start'});}
  function error(text){show([el('p','error',text)]);}
@@ -39,6 +40,8 @@
  // SEM filtro de nível (decisão de 03/11/2026): entram vendas de todos os níveis da cadeia evolutiva; o eixo é o PvE ou a nota.
  const SVG='http://www.w3.org/2000/svg',MIN_GEMS=2,MAX_LEVEL=10000;
  const svg=(tag,attrs,text)=>{const e=document.createElementNS(SVG,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(text!=null)e.textContent=text;return e;};
+ // Legenda de cores acima de um gráfico: [classe da amostra, texto].
+ const chartKey=items=>{const list=el('ul','legend chartkey');for(const [cls,text]of items){const item=el('li');item.append(el('i','swatch '+cls),text);list.append(item);}return list;};
  const METRICS={
   nota:{button:'Por nota',axis:'Nota (0 a 10)',mine:'a Nota deste Pokémon',near:'Nota parecida',of:x=>x.nota,from:3.5,fmt:v=>v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:2}),up:'nota maior',down:'nota menor',more:'com nota maior',less:'com nota menor'},
   pve:{button:'Por PvE',axis:'PvE',mine:'o PvE deste Pokémon',near:'PvE parecido',of:x=>x.pve,from:0,fmt:v=>gems(v),up:'mais forte',down:'mais fraco',more:'mais fortes',less:'mais fracas'}};
@@ -54,11 +57,11 @@
   // O eixo do preço cobre 98% das vendas (centrado no Preço justo): as mais extremas ficam na borda, em círculo vazado.
   const outside=prices.filter(v=>Math.abs(Math.log(v)-lb)>dp).length;
   const vals=[...sales.map(m.of),mine],c0=Math.min(m.from,mine),top=Math.max(...vals),p0=Math.min(lb,Math.max(Math.log(MIN_GEMS),lb-dp)),p1=lb+dp,v0=c0,v1=top+(top-c0)*.06||c0+1;
-  const W=340,H=222,L=78,R=334,T=10,B=176,X=v=>L+(v-v0)/(v1-v0)*(R-L),Y=v=>B-(Math.min(p1,Math.max(p0,Math.log(v)))-p0)/(p1-p0)*(B-T);
-  const chart=svg('svg',{viewBox:`0 0 ${W} ${H}`,class:'scatter'+(sales.length>150?' dense':''),role:'img'}),cx=X(mine),cy=Y(r.base),ax=X(c0);
+  const W=560,H=320,L=72,R=552,T=24,B=276,X=v=>L+(v-v0)/(v1-v0)*(R-L),Y=v=>B-(Math.min(p1,Math.max(p0,Math.log(v)))-p0)/(p1-p0)*(B-T);
+  const chart=svg('svg',{viewBox:`0 0 ${W} ${H}`,class:'scatter'+(sales.length>150?' dense':''),role:'img'}),cx=X(mine),cy=Y(r.base);
   const yh=Math.max(T,Y(hi)),yl=Math.min(B,Y(lo));
   chart.append(svg('rect',{class:'band',x:L,y:yh,width:R-L,height:Math.max(1,yl-yh)}),svg('rect',{class:'frame',x:L,y:T,width:R-L,height:B-T}));
-  chart.append(svg('line',{class:'axisline',x1:ax,x2:ax,y1:T,y2:B}),svg('line',{class:'axisline',x1:L,x2:R,y1:cy,y2:cy}));
+  chart.append(svg('line',{class:'axisline',x1:L,x2:R,y1:cy,y2:cy}));
   // "Agrupar": grade de 24 × 14 quadrados; a cor fica mais forte com mais vendas no quadrado (raiz da contagem) e a
   // cor é verde quando o meio do quadrado está entre Vender rápido e Esperar. Cada quadrado resume as suas vendas.
   if(grouped){const CW=(R-L)/24,CH=(B-T)/14,cells=new Map();
@@ -74,24 +77,24 @@
   chart.append(svg('line',{class:'mine',x1:cx,x2:cx,y1:T,y2:B}));
   const me=svg('circle',{class:'me',cx,cy,r:6});me.append(svg('title',{},`Este Pokémon: ${m.axis} ${m.fmt(mine)} · Preço justo ${gems(r.base)} Gemas`));chart.append(me);
   // Rótulos: preço à esquerda (Preço justo em duas linhas, no meio); embaixo, as pontas do eixo somem se encostarem no valor amarelo.
-  const under=B+14,mid=(T+B)/2,tw=t=>t.length*6,mineText=m.fmt(mine),lowText=m.fmt(v0),highText=m.fmt(v1);
-  chart.append(svg('text',{class:'axis',x:L-4,y:T+8,'text-anchor':'end'},gems(Math.exp(p1))),svg('text',{class:'axis',x:L-4,y:B,'text-anchor':'end'},gems(Math.exp(p0))),
-   svg('text',{class:'fairlabel',x:L-4,y:cy-2,'text-anchor':'end'},'Preço justo'),svg('text',{class:'fairlabel',x:L-4,y:cy+10,'text-anchor':'end'},gems(r.base)),
+  const under=B+16,tw=t=>t.length*6.6,mineText=m.fmt(mine),lowText=m.fmt(v0),highText=m.fmt(v1);
+  chart.append(svg('text',{class:'axis',x:L-6,y:T+10,'text-anchor':'end'},gems(Math.exp(p1))),svg('text',{class:'axis',x:L-6,y:B,'text-anchor':'end'},gems(Math.exp(p0))),
+   svg('text',{class:'fairlabel',x:L-6,y:cy-2,'text-anchor':'end'},'Preço justo'),svg('text',{class:'fairlabel',x:L-6,y:cy+12,'text-anchor':'end'},gems(r.base)),
    svg('text',{class:'minelabel',x:Math.min(W-tw(mineText)/2,cx),y:under,'text-anchor':'middle'},mineText),
-   svg('text',{class:'axisname',x:(L+R)/2,y:H-4,'text-anchor':'middle'},m.axis+' →'),
-   svg('text',{class:'axisname',x:12,y:mid,'text-anchor':'middle',transform:`rotate(-90 12 ${mid})`},'Preço (Gemas, sem Adicionais) →'));
+   svg('text',{class:'axisname',x:(L+R)/2,y:H-6,'text-anchor':'middle'},m.axis+' →'),
+   svg('text',{class:'axisname',x:L,y:12},'↑ Preço (Gemas, sem Adicionais)'));
   if(cx-L>=tw(lowText)+tw(mineText)/2+6)chart.append(svg('text',{class:'axis',x:L,y:under},lowText));
   if(R-cx>=tw(highText)+tw(mineText)/2+6)chart.append(svg('text',{class:'axis',x:R,y:under,'text-anchor':'end'},highText));
   const above=sales.filter(s=>m.of(s)>mine),cheapAbove=above.filter(s=>s.base<r.base).length,below=sales.filter(s=>m.of(s)<mine),dearBelow=below.filter(s=>s.base>r.base).length;
   const inside=prices.filter(v=>v>=lo&&v<=hi).length;
   chart.setAttribute('aria-label',`${sales.length} vendas ${chainOf(r).of}${r.shiny?' shiny':''} por preço e ${m.axis}; ${above.length} ${m.more} que este, ${cheapAbove} delas mais baratas que o Preço justo`);
-  return [chart,el('p','small',`${grouped?'Cada quadrado junta vendas da cadeia, de qualquer nível; cor mais forte, mais vendas.':'Cada ponto é uma venda da cadeia, de qualquer nível.'} Linha branca: Preço justo. Amarelo: este Pokémon. Faixa verde: entre Vender rápido e Esperar (${inside} de ${sales.length} vendas). Preços sem Adicionais.${m===METRICS.nota&&chainOf(r).forms.length>1?' Cada venda mostra a Nota da forma vendida.':''}${outside?` Círculo vazado: ${outside===1?'venda muito longe':'vendas muito longe'} do Preço justo.`:''}${hidden?` ${hidden===1?'1 venda com nota abaixo de 3,5 fica fora':`${hidden} vendas com nota abaixo de 3,5 ficam fora`}.`:''}`)];
+  return [chartKey([['dot-mine','Este Pokémon'],['line-fair','Preço justo'],['in',`Entre Vender rápido e Esperar: ${inside} de ${gems(sales.length)} vendas`]]),chart,el('p','small',`${grouped?'Cada quadrado junta vendas da cadeia, de qualquer nível; cor mais forte, mais vendas.':'Cada ponto é uma venda da cadeia, de qualquer nível.'} Preços sem Adicionais${r.parts.length?` (com eles, o Preço justo deste Pokémon é ${gems(r.median)})`:''}.${m===METRICS.nota&&chainOf(r).forms.length>1?' Cada venda mostra a Nota da forma vendida.':''}${outside?` Círculo vazado: ${outside===1?'venda muito longe':'vendas muito longe'} do Preço justo.`:''}${hidden?` ${hidden===1?'1 venda com nota abaixo de 3,5 fica fora':`${hidden} vendas com nota abaixo de 3,5 ficam fora`}.`:''}`)];
  }
  function familyChart(r){
   const all=rows.filter(x=>x.family===r.familyId&&x.shiny===r.shiny);
   if(all.length<3)return null;
   const addons=r.median-r.base,lo=Math.max(MIN_GEMS,r.low-addons),hi=Math.max(lo,r.high-addons);
-  const box=el('div'),bar=el('div','switch');bar.setAttribute('role','group');bar.setAttribute('aria-label','Eixo horizontal do gráfico');
+  const box=el('div','chartbody'),bar=el('div','switch');bar.setAttribute('role','group');bar.setAttribute('aria-label','Eixo horizontal do gráfico');
   const buttons={},group=el('button','toggle','Agrupar');group.type='button';group.title='Juntar as vendas em quadrados: a cor mostra quantas há em cada um';
   group.addEventListener('click',()=>{grouped=!grouped;draw(chartMode);});
   const draw=mode=>{chartMode=mode;for(const [k,b]of Object.entries(buttons))b.setAttribute('aria-pressed',String(k===mode));group.setAttribute("aria-pressed",String(grouped));box.replaceChildren(...scatter(r,all,METRICS[mode],lo,hi,grouped));};
@@ -156,7 +159,7 @@
    para('Adicionais.','Cada um conta 10 unidades do item (fragmentos de Z-Move ou AoE, pedras Mega) pela mediana do menor anúncio do dia. O valor sai de cada venda antes da comparação e volta no fim, pelo preço de hoje.'),
    para('Adicional incerto.',`O jogo mostra o AoE e o Z-Move de hoje, não os da venda. Na dúvida, o valor deles não é descontado, para o cálculo errar para cima.${u.family?` Aqui, ${gems(u.family)} das ${gems(r.familyCount)} vendas ${ch.of} estão nesse caso.`:''}`),
    para('Refino.','Os Pokémon são comparados sem refino: uma venda refinada conta como se não tivesse refino.')];
-  how.push(para('De onde vem a confiança?',`Cada venda passada foi precificada só com as vendas anteriores a ela. A Confiança é a porcentagem dessas vendas, da mesma cadeia e com o mesmo shiny, em que o Preço justo ficou a até 25% do valor pago. Pesam mais as vendas mais parecidas e mais recentes, como no preço, e o resultado sai de 10 em 10. Com menos de ${precos.confianca?.minVendas??5} vendas equivalentes, ela não é medida. A coluna Acertou mostra o resultado de cada venda da tabela.`));
+  how.push(para('De onde vem a confiança?',`Cada venda passada foi precificada só com as vendas anteriores a ela. A Confiança é a porcentagem dessas vendas, da mesma cadeia e com o mesmo shiny, em que o Preço justo ficou a até 25% do valor pago. Pesam mais as vendas mais parecidas e mais recentes, como no preço, e o resultado sai de 10 em 10. Com menos de ${precos.confianca?.minVendas??5} vendas equivalentes, ela não é medida.`));
   details.append(...how);
   const proof=[];
   if(t?.precificadas){
@@ -186,31 +189,30 @@
  // com 10 linhas e "Mostrar mais". Ordenação pelo cabeçalho: 1º clique do maior para o menor, 2º inverte.
  const share=x=>!Number.isFinite(x)?'–':x>=.001?(x*100).toLocaleString('pt-BR',{maximumFractionDigits:x>=.1?0:1})+'%':'< 0,1%';
  function salesTable(comps,showForm){
-  const cols=[{key:'closeness',label:'Proximidade'},{key:'share',label:'Peso'},{key:'level',label:'Nível'},{key:'nota',label:'Nota'},{key:'pve',label:'PvE'},{key:'at',label:'Data'},{key:'price',label:'Gemas'},{key:'acertou',label:'Acertou'}];
+  const cols=[{key:'closeness',label:'Proximidade'},{key:'share',label:'Peso'},{key:'level',label:'Nível'},{key:'nota',label:'Nota'},{key:'pve',label:'PvE'},{key:'at',label:'Data'},{key:'price',label:'Gemas'}];
   let sort={key:'closeness',dir:'desc'},open=false;const FIRST=10;
   const table=el('table','sales'),head=el('tr'),body=el('tbody'),more=el('button','toggle');table.append(el('thead'),body);table.tHead.append(head);more.type='button';
   more.addEventListener('click',()=>{open=!open;draw();});
   function draw(){
-   const obsHead=el('th','obs','Observação');obsHead.scope='col';
+   // A coluna Observação só aparece quando alguma venda da lista completa tem observação: assim ela não some ao ordenar.
+   const sign=sort.dir==='asc'?1:-1,list=[...comps].sort((a,b)=>((a[sort.key]??-1)-(b[sort.key]??-1))*sign||b.at-a.at),hasObs=comps.some(c=>c.uncertain),obsHead=el('th','obs','Observação');obsHead.scope='col';
    const formHead=el('th',null,'Forma');formHead.scope='col';
    head.replaceChildren(...(showForm?[formHead]:[]),...cols.map(c=>{const th=el('th');th.scope='col';const b=el('button',null,c.label+(sort.key===c.key?(sort.dir==='asc'?' ↑':' ↓'):''));b.type='button';
     if(sort.key===c.key)th.setAttribute('aria-sort',sort.dir==='asc'?'ascending':'descending');
     if(c.key==='share')th.title='Quanto esta venda conta de fato no preço. É uma mediana: uma venda muito cara ou muito barata conta como uma venda acima ou abaixo do meio, não pelo valor.';
     if(c.key==='price')th.title='Valor pago na venda, com os Adicionais dela (pelo preço daquele dia)';
     if(c.key==='pve')th.title='PvE sem Adicionais, no Nv 100 e na última evolução. Por isso costuma ser diferente do Poder que a ficha mostra, calculado no nível e na forma atuais.';
-    if(c.key==='acertou')th.title='Se o Preço justo, calculado só com as vendas anteriores a esta, ficou a até 25% do valor pago. É a base da Confiança.';
     if(c.key==='closeness')th.title='O quanto esta venda se parece com o seu Pokémon em nível, PvE, Nota, data e por ser Mega ou não (100% = idêntica e vendida hoje). Não olha o preço pago.';
-    b.onclick=()=>{sort=sort.key===c.key?{key:c.key,dir:sort.dir==='asc'?'desc':'asc'}:{key:c.key,dir:'desc'};draw();};th.append(b);return th;}),obsHead);
-   const sign=sort.dir==='asc'?1:-1,list=[...comps].sort((a,b)=>((a[sort.key]??-1)-(b[sort.key]??-1))*sign||b.at-a.at);
+    b.onclick=()=>{sort=sort.key===c.key?{key:c.key,dir:sort.dir==='asc'?'desc':'asc'}:{key:c.key,dir:'desc'};draw();};th.append(b);return th;}),...(hasObs?[obsHead]:[]));
    body.replaceChildren(...list.slice(0,open?list.length:FIRST).map(c=>{
-    const tr=el('tr'),price=el('td',null,gems(c.price));
+    const tr=el('tr'),price=el('td','paid',gems(c.price));
     // Observação numa coluna própria: só o Adicional incerto (o refino é explicado na auditoria, não aqui).
     const obs=el('td','obs'),marks=[];
     if(c.uncertain){const m=el('span','warn','Adicional incerto');m.title='O jogo mostra o AoE e o Z-Move que o Pokémon tem hoje: esta venda foi lida depois e eles podem ter sido aplicados pelo comprador';marks.push(m);}
     marks.forEach((m,i)=>{if(i)obs.append(' · ');obs.append(m);});
     tr.title=`${c.name}${c.shiny?' shiny':''}`;
     if(showForm)tr.append(el('td',null,c.name));
-    tr.append(el('td',null,share(c.closeness)),el('td',null,share(c.share)),el('td',null,gems(c.level)),el('td',null,Number.isFinite(c.nota)?METRICS.nota.fmt(c.nota):'–'),el('td',null,Number.isFinite(c.pve)?gems(c.pve):'–'),el('td',null,when(c.at)),price,el('td',null,c.acertou===true?'Sim':c.acertou===false?'Não':'–'),obs);return tr;}));
+    tr.append(el('td',null,share(c.closeness)),el('td',null,share(c.share)),el('td',null,gems(c.level)),el('td',null,Number.isFinite(c.nota)?METRICS.nota.fmt(c.nota):'–'),el('td',null,Number.isFinite(c.pve)?gems(c.pve):'–'),el('td',null,when(c.at)),price);if(hasObs)tr.append(obs);return tr;}));
    more.hidden=list.length<=FIRST;more.textContent=open?'Mostrar menos':`Mostrar mais (${list.length-FIRST})`;
   }
   draw();const wrap=el('div','tablewrap');wrap.append(table);const box=el('div');box.append(wrap,more);return box;
@@ -227,26 +229,29 @@
   // Só o Pokémon (sem Adicionais): é a parte que muda ao upar; os Adicionais somam o mesmo em qualquer nível.
   const add=r.median-r.base,pts=(r.byLevel||[]).map(p=>({...p,low:Math.max(MIN_GEMS,p.low-add),median:Math.max(MIN_GEMS,p.median-add),high:Math.max(MIN_GEMS,p.high-add)}));if(pts.length<3)return [];
   // Mesmo tamanho e margens do gráfico de vendas ao lado (scatter), para os quadros ficarem alinhados.
-  const W=340,H=222,L=50,R=334,T=10,B=176,lx0=Math.log(pts[0].level),lx1=Math.log(pts.at(-1).level),top=Math.max(...pts.map(p=>p.high))*1.05;
+  const W=560,H=320,L=72,R=552,T=24,B=276,lx0=Math.log(pts[0].level),lx1=Math.log(pts.at(-1).level),top=Math.max(...pts.map(p=>p.high))*1.05;
   const X=lv=>L+(Math.log(lv)-lx0)/(lx1-lx0||1)*(R-L),Y=v=>B-v/top*(B-T);
   const chart=svg('svg',{viewBox:`0 0 ${W} ${H}`,class:'scatter levels',role:'img'});
   chart.append(svg('rect',{class:'frame',x:L,y:T,width:R-L,height:B-T}));
   chart.append(svg('polygon',{class:'band',points:[...pts.map(p=>`${X(p.level)},${Y(p.high)}`),...[...pts].reverse().map(p=>`${X(p.level)},${Y(p.low)}`)].join(' ')}));
   chart.append(svg('polyline',{class:'line',points:pts.map(p=>`${X(p.level)},${Y(p.median)}`).join(' ')}));
   const now=pts.find(p=>p.current),drop=pts.find(p=>p.drop);
+  chart.setAttribute('aria-label',`Preço do Pokémon sem Adicionais por nível, do Nv ${gems(pts[0].level)} ao Nv ${gems(pts.at(-1).level)}. No Nv ${gems(now.level)}: ${gems(now.median)} Gemas.`);
   // Rótulos do eixo sem sobrepor (04/11/2026): o nível atual e o da hunt sempre; 100, 1.000 e o último só se couberem.
-  // Largura estimada pelo número de letras (11 px); perto da borda o texto alinha para dentro.
-  const placed=[],label=(p,text,cls)=>{const w=text.length*6.2,x=X(p.level),a=x-w/2<L-8?'start':x+w/2>W-2?'end':'middle',x0=a==='start'?x:a==='end'?x-w:x-w/2;
-   if(placed.some(([b0,b1])=>x0<b1+6&&x0+w>b0-6))return;placed.push([x0,x0+w]);chart.append(svg('text',{class:cls||'',x,y:B+14,'text-anchor':a},text));};
+  // Largura estimada pelo número de letras (12 px); perto da borda o texto alinha para dentro.
+  const placed=[],label=(p,text,cls)=>{const w=text.length*6.6,x=X(p.level),a=x-w/2<L-8?'start':x+w/2>W-2?'end':'middle',x0=a==='start'?x:a==='end'?x-w:x-w/2;
+   if(placed.some(([b0,b1])=>x0<b1+6&&x0+w>b0-6))return;placed.push([x0,x0+w]);chart.append(svg('text',{class:cls||'',x,y:B+16,'text-anchor':a},text));};
   for(const p of pts){const dot=svg('circle',{class:p.current?'me':'pt',cx:X(p.level),cy:Y(p.median),r:p.current?6:3.5});dot.append(svg('title',null,`Nv ${gems(p.level)}: Pokémon ${gems(p.median)} Gemas sem Adicionais (${gems(p.low)} a ${gems(p.high)})`));chart.append(dot);
   }
   label(now,'Nv '+gems(now.level),'minelabel');if(drop&&!drop.current)label(drop,`Nv ${gems(drop.level)} (hunt)`);
   for(const lv of [100,1000,pts.at(-1).level,pts[0].level]){const p=pts.find(x=>x.level===lv);if(p&&!p.current&&!p.drop)label(p,gems(lv));}
-  chart.append(svg('text',{x:L-6,y:B,'text-anchor':'end'},'0'),svg('text',{x:L-6,y:T+8,'text-anchor':'end'},gems(Math.round(top))));
-  chart.append(svg('text',{class:'axisname',x:(L+R)/2,y:H-8,'text-anchor':'middle'},'Nível →'),svg('text',{class:'axisname',x:14,y:(T+B)/2,'text-anchor':'middle',transform:`rotate(-90 14 ${(T+B)/2})`},'Pokémon (Gemas) →'));
+  chart.append(svg('text',{x:L-6,y:B,'text-anchor':'end'},'0'),svg('text',{x:L-6,y:T+10,'text-anchor':'end'},gems(Math.round(top))));
+  chart.append(svg('text',{class:'axisname',x:(L+R)/2,y:H-6,'text-anchor':'middle'},'Nível →'),svg('text',{class:'axisname',x:L,y:12},'↑ Pokémon (Gemas)'));
   const up=pts.filter(p=>p.level>now.level&&[200,500,1000,2000,5000,10000].includes(p.level)).slice(0,3);
-  const nodes=[el('h4',null,'Preço por nível'),chart,el('p','small',`A mesma ficha em outros níveis, sem Adicionais${add>0?` (eles somam ${gems(add)} Gemas em qualquer nível)`:''}.${Number.isFinite(r.dropLevel)?` Começa no Nv ${gems(r.dropLevel)}, o nível da hunt.`:''} A curva é a mesma para todas as espécies.`)];
+  const nodes=[el('h4',null,'Preço por nível'),chartKey([['dot-mine','Nível atual'],['line-ok','Preço justo'],['in','Entre Vender rápido e Esperar']]),chart,el('p','small',`A mesma ficha em outros níveis, sem Adicionais${add>0?` (eles somam ${gems(add)} Gemas em qualquer nível)`:''}.${Number.isFinite(r.dropLevel)?` Começa no Nv ${gems(r.dropLevel)}, o nível da hunt.`:''} A curva é a mesma para todas as espécies.`)];
   if(up.length)nodes.push(el('p','small',`Se upar antes de vender: ${up.map(p=>`Nv ${gems(p.level)} ≈ ${gems(p.median)} Gemas (+${pct(p.median/now.median-1)}%)`).join(' · ')}.`));
+  // As notas ficam juntas numa só linha da grade, para não acompanharem a altura da nota do gráfico ao lado.
+  const notes=el('div');notes.append(...nodes.splice(3));nodes.push(notes);
   return nodes;
  }
  // "Como chegamos ao preço" (as vendas da cadeia evolutiva que mais pesaram, média ponderada pelo peso em escala log, com o nível e a Nota delas, contra este Pokémon).
@@ -273,58 +278,59 @@
   if(r.missing?.length){const m=r.missing,list=m.length>1?`${m.slice(0,-1).join(', ')} e ${m.at(-1)}`:m[0];box.append(el('p','warn',`${m.length>1?'Adicionais':'Adicional'} sem cotação: ${list} ${m.length>1?'ficaram':'ficou'} fora do total.`));}
   return box;
  }
- // Régua de Vender rápido a Esperar: a marca fica onde o Preço justo cai (escala log), e as legendas dizem, pelo teste, quantas vendas saem fora de cada ponta.
- function ruler(r){
-  const track=el('div','track'),mark=el('i','mark'),span=Math.log(r.high/r.low);mark.style.left=`${span>0?Math.min(96,Math.max(4,Math.log(r.median/r.low)/span*100)):50}%`;track.append(mark);
-  track.setAttribute('role','img');track.setAttribute('aria-label',`Preço justo de ${gems(r.median)} Gemas, entre ${gems(r.low)} e ${gems(r.high)}`);
-  const t=precos.teste,one=x=>`1 em cada ${Math.round(1/x)} vendas`,legend=el('div','rulerlegend small muted');
-  if(!t?.abaixo||!t?.acima)return [track];
-  legend.title='Pelo teste com vendas reais de todas as espécies, não só deste Pokémon';legend.append(el('span',null,`${one(t.abaixo)} sai abaixo de Vender rápido`),el('span',null,`${one(t.acima)} sai acima de Esperar`));
-  return [track,legend];
+ // Mostrador de Vender rápido a Esperar: a marca e o Preço justo ficam onde o preço cai (escala log), e as notas dizem, pelo teste, quantas vendas saem fora de cada ponta.
+ function gauge(r){
+  const box=el('div','gauge'),track=el('div','track'),ends=el('div','ends'),span=Math.log(r.high/r.low),t=precos.teste,hasTest=t?.abaixo&&t?.acima,one=x=>`1 em cada ${Math.round(1/x)} vendas`;
+  box.style.setProperty('--at',`${span>0?Math.min(96,Math.max(4,Math.log(r.median/r.low)/span*100)):50}%`);
+  track.append(el('i','mark'));track.setAttribute('role','img');track.setAttribute('aria-label',`Preço justo de ${gems(r.median)} Gemas, entre ${gems(r.low)} e ${gems(r.high)}`);
+  const cell=(key,label,cls,note)=>{const c=el('div','price'+cls);c.append(el('span',null,label),el('b',null,gems(r[key])));if(note)c.append(el('p','endnote small muted',note));return c;};
+  ends.append(cell('low','Vender rápido','',hasTest?`${one(t.abaixo)} sai abaixo de Vender rápido`:null),cell('high','Esperar','',hasTest?`${one(t.acima)} sai acima de Esperar`:null));
+  if(hasTest)ends.title='Pelo teste com vendas reais de todas as espécies, não só deste Pokémon';
+  box.append(cell('median','Preço justo',' main'),track,ends);return box;
  }
  function render(r){
-  const nodes=[],who=el('div','who'),title=el('div');
+  const nodes=[],extras=[],who=el('div','who'),title=el('div');
   title.append(el('h3',null,`${r.name}${r.shiny?' shiny':''} · Nv ${gems(r.level)}`),types(r.types),sheetStats(r),tags(r));who.append(sprite(r.speciesId,r.shiny,false),title);nodes.push(who);
   if(r.simFrom)nodes.push(el('p','small simnote',`Simulação a partir da ficha de ${r.simFrom.name} Nv ${gems(r.simFrom.level)}.${r.speciesId!==r.simFrom.id&&megaBaseOf(r.speciesId)!==r.simFrom.id?' Não inclui o custo de evoluir.':''}`));
   // Confiança sem medida (09/11/2026): sem preço até a pessoa pedir; depois, o preço com "Confiança baixa".
-  const hidden=r.available&&r.confidence?.few&&!fewOpen;
+  const hidden=r.available&&r.confidence?.few&&!fewOpen,weak=r.confidence&&(r.confidence.few||r.confidence.percent<20),lowNote=()=>el('p','note small warn','Confiança baixa: use o preço só como referência.');
   if(!r.available)nodes.push(el('p','error','Poucas vendas para comparar este Pokémon.'));
   else if(hidden){const go=el('button','toggle fewbtn','Quero mesmo assim');go.type='button';go.addEventListener('click',()=>{fewOpen=true;compute();});nodes.push(el('p','note','Poucas vendas para medir.'),go);}
   else{
-   const prices=el('div','prices ruler');
-   for(const [key,label]of [['low','Vender rápido'],['median','Preço justo'],['high','Esperar']]){const box=el('div','price'+(key==='median'?' main':''));box.append(el('span',null,label),el('b',null,gems(r[key])));prices.append(box);}
-   nodes.push(prices,...ruler(r));
-   if(r.parts.length){const parts=el('ul','parts'),row=(label,value,cls)=>{const li=el('li',cls);li.append(el('span',null,label),el('b',null,value));parts.append(li);};
-    row('Pokémon',gems(r.base));
-    for(const p of r.parts)parts.append(addonRow(p));
-    nodes.push(parts);}
-   if(r.parts.length)nodes.push(el('p','muted small','O valor por unidade vem da última cotação lida. Clique nele para trocar.'));
-   // Confiança do Preço justo: só o número, de 10 em 10; vermelha abaixo de 20% (com aviso), amarela de 20% a 60%, verde de 60% para cima.
-   if(r.confidence?.few){const box=el('div','confidence low');box.append(el('b',null,'Confiança baixa'));nodes.push(box);}
+   const row=el('div','pricerow'),block=el('div','confblock');row.append(gauge(r));
+   // Confiança do Preço justo: só o número, de 10 em 10; vermelha abaixo de 20% (com aviso), de alerta de 20% a 60%, verde de 60% para cima. Fica abaixo do preço, com separador.
+   if(r.confidence?.few){const box=el('div','confidence low');box.append(el('b',null,'Confiança baixa'));block.append(box);}
    else if(r.confidence){const c=r.confidence,box=el('div','confidence '+(c.percent<20?'low':c.percent<60?'mid':'high')),bar=el('div','meter'),fill=el('i');
-    fill.style.width=c.percent+'%';bar.append(fill);bar.setAttribute('aria-hidden','true');
-    box.append(el('b',null,`Confiança ${c.percent}%`),bar);nodes.push(box);}
+    fill.style.width=c.percent+'%';bar.append(fill);bar.setAttribute('aria-hidden','true');box.append(el('b',null,`Confiança ${c.percent}%`),bar);
+    block.append(box,el('p','muted small confnote',`Em vendas parecidas, o Preço justo ficou a até 25% do valor pago ${c.percent/10} em cada 10 vezes.`));}
+   if(weak)block.append(lowNote());
+   if(block.childNodes.length)row.append(block);nodes.push(row);
+   // Composição com uma linha por parte, no mesmo formato do bloco Simular: rótulo à esquerda e valor à direita.
+   const box=el('fieldset','compose'),parts=el('ul','parts'),li=el('li'),value=el('div','partvalue');
+   value.append(el('b',null,gems(r.base)));li.append(el('span','partname','Pokémon'),value);parts.append(li);
+   for(const p of r.parts)parts.append(addonRow(p));
+   box.append(el('legend',null,'Composição'),parts,el('p','muted small partnote',r.parts.length?'O valor por unidade vem da última cotação lida. Clique nele para trocar.':'Sem Adicionais marcados: o preço é só o do Pokémon.'));extras.push(box);
   }
   const why=whyList(r);
-  if(!hidden&&r.confidence&&(r.confidence.few||r.confidence.percent<20))nodes.push(el('p','note small warn','Confiança baixa: use o preço só como referência.'));
+  if(!r.available&&weak)nodes.push(lowNote());
   if(why.childNodes.length){why.classList.add('whybox');why.tabIndex=0;why.setAttribute('aria-label','Adicionais sem cotação');nodes.push(why);}
-  if(hidden){show(nodes,[]);return;}
+  if(hidden){show(nodes,[],extras);return;}
   // Layout (04/11/2026): a ficha e o preço lado a lado; gráficos, auditoria e vendas embaixo, em largura total.
   const below=[];
   // O gráfico da espécie fica sempre à vista; sem vendas suficientes dela, o gráfico geral do teste.
   // Os dois gráficos lado a lado (no celular, um embaixo do outro); auditoria e tabela de vendas abaixo deles.
   if(r.available){const chart=familyChart(r),left=el('div','chartcol'),right=el('div','chartcol'),levels=levelChart(r),row=el('div',levels.length?'chartrow':null);
    const head=(title,tools)=>{const h=el('div','charthead');h.append(el('h4',null,title));if(tools)h.append(tools);return h;};
-   if(chart){const [tools,...rest]=chart;left.append(head(`Vendas ${chainOf(r).of}`,tools),...rest);}else left.append(...(precos.teste?.precificadas?generic(precos.teste,'h4'):[]));
+   if(chart){const [tools,...rest]=chart;left.append(head(`Vendas ${chainOf(r).of}`,tools),...rest);}else if(precos.teste?.precificadas){const all=el('div','chartfallback');all.append(...generic(precos.teste,'h4'));left.append(all);}
    row.append(left);if(levels.length){const [,...rest]=levels;right.append(head('Preço por nível'),...rest);row.append(right);}
    below.push(row);}
-  if(r.comps?.length){below.push(el("h4",null,`Vendas ${chainOf(r).of} que mais pesaram no preço`));
+  if(r.comps?.length){below.push(el("h4",'saleshead',`Vendas ${chainOf(r).of} que mais pesaram no preço`));
    // Cadeia evolutiva com pouco peso (04/11/2026): avisa que o preço veio de outras espécies, para a tabela não parecer a base dele.
    if((r.weight||0)<.1)below.push(el('p','small muted',`Só ${pct(r.weight||0)<1?'menos de 1':pct(r.weight||0)}% do preço vem destas vendas ${chainOf(r).of}: o resto vem de outras espécies, primeiro as com os mesmos tipos.`));
    below.push(salesTable(r.comps,chainOf(r).hasChain));}
   // Auditoria por último na página (04/11/2026), depois dos gráficos e da tabela de vendas.
   if(r.available)below.push(confidence(precos.teste,r));
-  show(nodes,below);
+  show(nodes,below,extras);
  }
 
  // O mesmo Pokémon: espécie, nível, potência, qualidade, shiny e IVs. Colar outro desmarca Z-Move e AoE.
@@ -402,14 +408,14 @@
  }
  // Linha de um Adicional com o preço por unidade editável (Enter ou sair do campo recalcula; "cotação" volta ao do dia).
  function addonRow(p){
-  const li=el('li','sub'),label=el('span'),input=el('input','unit');input.type='number';input.min='1';input.step='1';input.inputMode='numeric';
+  const li=el('li','sub'),value=el('div','partvalue'),input=el('input','unit');input.type='number';input.min='1';input.step='1';input.inputMode='numeric';
   input.value=p.unit!=null?String(Math.round(p.unit)):'';input.setAttribute('aria-label',`Preço de 1 unidade de ${p.label}, em Gemas`);
   const mine=Number(loadItems()[p.id])>0;input.title=mine?'Seu valor (guardado neste navegador)':`Cotação de ${p.quote!=null?gems(p.quote):'?'} Gemas por unidade`;
   const apply=()=>{const v=Math.round(Number(input.value));if(v>0&&v!==Math.round(p.unit||0))setItem(p.id,v);};
   input.addEventListener('change',apply);input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();apply();}});
-  const calc=el('span','addoncalc');calc.append(`${p.quantity} × `,input);label.append(p.label,calc);
-  if(mine){const back=el('button','link','cotação');back.type='button';back.title=`Voltar à última cotação lida (${p.quote!=null?gems(p.quote):'?'})`;back.addEventListener('click',()=>setItem(p.id,0));label.append(' ',back);}
-  li.append(label,el('b',null,p.total!=null?gems(p.total):'sem cotação'));return li;
+  value.append(`${p.quantity} ×`,input,'=',el('b',null,p.total!=null?gems(p.total):'sem cotação'));
+  if(mine){const back=el('button','link','cotação');back.type='button';back.title=`Voltar à última cotação lida (${p.quote!=null?gems(p.quote):'?'})`;back.addEventListener('click',()=>setItem(p.id,0));value.append(back);}
+  li.append(el('span','partname',p.label),value);return li;
  }
  // Link com a ficha na URL: preenche a ficha e os Adicionais e segue o caminho normal do botão Precificar.
  function openLink(){
