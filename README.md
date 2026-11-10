@@ -44,8 +44,8 @@ ficha pode sair por poucas Gemas ou por muito mais, e por isso a faixa entre Ven
 número do meio.
 
 A página mostra o resultado do teste contra vendas passadas, refeito a cada atualização: cada venda é precificada só
-com as vendas anteriores a ela e comparada com o preço pago. A **Confiança** é a chance de a venda sair a até 25% do
-Preço justo, aprendida nas vendas recentes, e a página também mostra se ela vem acertando.
+com as vendas anteriores a ela e comparada com o preço pago. A **Confiança** é a porcentagem de vezes em que o Preço justo
+ficou a até 25% do valor pago, nas vendas parecidas com o Pokémon analisado, e a página também mostra se ela vem acertando.
 
 ## Atualização
 

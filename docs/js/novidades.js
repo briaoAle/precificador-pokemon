@@ -3,6 +3,12 @@
 (function(){
  'use strict';
  const NOVIDADES=[
+  {data:'10/11/2026',itens:[
+   'O preço agora dá mais peso às vendas de nível parecido e separa melhor Pokémon Mega de não Mega. A Proximidade da tabela de vendas acompanha essa mudança.']},
+  {data:'09/11/2026',itens:[
+   'A Confiança agora é o acerto medido: a porcentagem de vezes em que o Preço justo ficou a até 25% do valor pago, nas vendas parecidas com este Pokémon.',
+   'A tabela de vendas ganhou a coluna Acertou, com o resultado de cada venda.',
+   'Com poucas vendas parecidas para medir, o preço só aparece se você pedir, com Confiança baixa.']},
   {data:'06/11/2026',itens:[
    'Depois de precificar, o endereço da página guarda o Pokémon e os Adicionais: é só copiar a URL para mostrar o mesmo Pokémon a alguém. O preço é recalculado ao abrir, com as vendas do momento.',
    'Depois de precificar, dá para simular o mesmo Pokémon numa evolução à frente ou num nível maior.',

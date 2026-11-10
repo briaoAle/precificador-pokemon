@@ -27,7 +27,7 @@ function describe(central,p){
  if(p.tmElemental)addons.push({id:B.Z_FRAGMENT,label:'Z-Move '+String(p.tmElemental).toUpperCase(),quantity:PER_ADDON});
  if(yes(p.tmAoe))addons.push({id:B.AOE_FRAGMENT,label:'AoE',quantity:PER_ADDON});
  if(mega)addons.push({id:p.shiny===true?MEGA_SHINY:MEGA,label:p.shiny===true?'Mega Shiny':'Mega',quantity:PER_ADDON});
- return {pve:final.pve,family:final.id,familyName:final.name,shiny:p.shiny===true,level:p.level,addons};
+ return {pve:final.pve,family:final.id,familyName:final.name,shiny:p.shiny===true,level:p.level,addons,mega};
 }
 function prepare(central,sales,itemPrices){
  const quote=itemQuotes(itemPrices),find=speciesLookup(central),rows=[],skipped={};
@@ -76,8 +76,8 @@ function estimate(target,rows,{k=5,variant='factor',addons=0}={}){
   sources:{family:family.length,market:market.length,levelNear:near.length>=MIN_MARKET},
   uncertain:{family:family.filter(r=>r.uncertain).length,market:market.filter(r=>r.uncertain).length}};
 }
-const NEIGHBORS={layers:[1,.2,.05,.01],levelSigma:1.5,pveSigma:.15,notaSigma:.3,halfLifeDays:14,minWeight:1e-5,bias:Math.log(1.09),refinedWeight:1,uncertainPlain:1};
-const CONFIDENCE={weights:[-2.64,.66,.68,1.53,.85],keys:['proximidade','certeza','consistencia','ampliacao']};
+const NEIGHBORS={layers:[1,.2,.05,.01],levelSigma:.8,megaWeight:.2,pveSigma:.15,notaSigma:.3,halfLifeDays:14,minWeight:1e-5,bias:Math.log(1.09),refinedWeight:1,uncertainPlain:1};
+const CONFIDENCE={minVendas:5};
 function marketLine(points){
  const n=points.length,m=k=>points.reduce((s,p)=>s+p[k],0)/n,mx=m('x'),ml=m('l'),my=m('y');let xx=0,ll=0,xl=0,xy=0,ly=0;
  for(const p of points){const dx=p.x-mx,dl=p.l-ml,dy=p.y-my;xx+=dx*dx;ll+=dl*dl;xl+=dx*dl;xy+=dx*dy;ly+=dl*dy;}
@@ -100,13 +100,13 @@ function marketFit(same){
  const g=(x,l,nota)=>a0+f.pve(x)+f.nota(Number.isFinite(nota)?nota:notaMean)+f.level(l);g.level=l=>f.level(l);return g;
 }
 function weightedQuantile(points,q){const s=[...points].sort((a,b)=>a.v-b.v),total=s.reduce((t,p)=>t+p.w,0);let acc=0;for(const p of s){acc+=p.w;if(acc>=q*total)return p.v;}return s.at(-1).v;}
-function confidence(parts,weights=CONFIDENCE.weights){
- const x=CONFIDENCE.keys.map(k=>parts[k]),z=weights[0]+x.reduce((s,v,i)=>s+weights[i+1]*v,0),chance=1/(1+Math.exp(-z));
- const lowest=CONFIDENCE.keys.map((k,i)=>({k,loss:weights[i+1]*(1-x[i])})).sort((a,b)=>b.loss-a.loss)[0].k;
- return {chance,percent:Math.min(90,Math.max(10,Math.round(chance*10)*10)),lowest};
+function confidence(list){
+ let W=0,W2=0,H=0;for(const {w,hit}of list){W+=w;W2+=w*w;if(hit)H+=w;}
+ const neff=W?W*W/W2:0;if(!(neff>=CONFIDENCE.minVendas))return {percent:null,few:true,neff};
+ const chance=H/W;return {percent:Math.min(90,Math.max(10,Math.round(chance*10)*10)),few:false,chance,neff};
 }
 function influence(pts,W){const by=new Map();for(const p of pts)if(p.layer===0)by.set(p.r,(by.get(p.r)||0)+p.w);return [...by].map(([r,w])=>({r,share:w/W,closeness:w})).sort((a,b)=>b.share-a.share).slice(0,30);}
-function neighbors(target,rows,{addons=0,typesOf=()=>[],megaUnit=()=>0,weights,cfg=NEIGHBORS,bias=cfg.bias??0,fit:given}={}){
+function neighbors(target,rows,{addons=0,typesOf=()=>[],megaUnit=()=>0,cfg=NEIGHBORS,bias=cfg.bias??0,fit:given}={}){
  if(!target||addons==null)return null;
  const same=rows.filter(r=>r.shiny===target.shiny),near=same.filter(r=>nearLevel(r.level,target.level)),market=near.length>=MIN_MARKET?near:same;
  if(market.length<3)return null;
@@ -114,7 +114,7 @@ function neighbors(target,rows,{addons=0,typesOf=()=>[],megaUnit=()=>0,weights,c
  const layerOf=r=>{if(r.family===target.family)return 0;const t=typesOf(r.family);if(mine.length&&t.length===mine.length&&mine.every(x=>t.includes(x)))return 1;return mine.some(x=>t.includes(x))?2:3;};
  const at=target.at??Date.now(),pts=[];
  for(const r of same){
-  const layer=layerOf(r),w=(r.refined?cfg.refinedWeight??1:1)*cfg.layers[layer]*Math.exp(-((Math.log(r.level/target.level)/cfg.levelSigma)**2)/2)*Math.exp(-((Math.log(r.pve/target.pve)/cfg.pveSigma)**2)/2)*notaW(r)*.5**((at-r.at)/(cfg.halfLifeDays*DAY_MS));
+  const layer=layerOf(r),w=(r.refined?cfg.refinedWeight??1:1)*(cfg.megaWeight&&!!r.mega!==!!target.mega?cfg.megaWeight:1)*cfg.layers[layer]*Math.exp(-((Math.log(r.level/target.level)/cfg.levelSigma)**2)/2)*Math.exp(-((Math.log(r.pve/target.pve)/cfg.pveSigma)**2)/2)*notaW(r)*.5**((at-r.at)/(cfg.halfLifeDays*DAY_MS));
   if(!(w>=cfg.minWeight))continue;const expected=fit(Math.log(r.pve),Math.log(r.level),r.nota),uncertain=r.uncertain===true;
   if(!uncertain){pts.push({v:r.logBase-expected,w,layer,uncertain,r});continue;}
   const plain=Math.max(1,r.price-(r.mega?PER_ADDON*megaUnit(r.shiny,r.at):0));
@@ -125,9 +125,10 @@ function neighbors(target,rows,{addons=0,typesOf=()=>[],megaUnit=()=>0,weights,c
  const price=x=>Math.max(MIN_PRICE,Math.round(Math.exp(x)+addons)),sum=f=>pts.filter(f).reduce((s,p)=>s+p.w,0),W=sum(()=>true);
  const close=pts.filter(p=>p.layer<=1),cw=close.reduce((s,p)=>s+p.w,0),neff=cw?cw**2/close.reduce((s,p)=>s+p.w*p.w,0):0;
  const parts={proximidade:neff/(neff+5),certeza:sum(p=>!p.uncertain)/W,consistencia:Math.exp(-(hi-lo)),ampliacao:sum(p=>p.layer===0)/W};
- const family=same.filter(r=>r.family===target.family);
+ const family=same.filter(r=>r.family===target.family),measured=new Map();
+ for(const p of pts)if(p.layer===0&&typeof p.r.acertou==='boolean')measured.set(p.r,(measured.get(p.r)||0)+p.w);
  return {low:price(center+lo),median:price(center),high:price(center+hi),rawMedian:price(center+bias),base:Math.exp(center),addons,weight:parts.ampliacao,familyCount:family.length,marketCount:same.length,
-  parts,confidence:confidence(parts,weights),influence:influence(pts,W),uncertain:{family:family.filter(r=>r.uncertain).length,market:same.filter(r=>r.uncertain).length}};
+  parts,confidence:confidence([...measured].map(([r,w])=>({w,hit:r.acertou}))),influence:influence(pts,W),uncertain:{family:family.filter(r=>r.uncertain).length,market:same.filter(r=>r.uncertain).length}};
 }
 const MODEL={k:5,variant:'curve'};
 const LEVEL_STEPS=[20,40,60,80,100,150,200,300,500,700,1000,1500,2000,3000,5000,10000];
@@ -149,7 +150,7 @@ function dropLevel(central,rows,speciesId){
  const total=[...count.values()].reduce((a,b)=>a+b,0),[level,n]=[...count].sort((a,b)=>b[1]-a[1])[0]||[];
  return n>=5&&n/total>=.3?level:chainCap(central,id);
 }
-function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.now(),confidenceWeights,bias}){
+function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.now(),bias}){
  const speciesId=speciesLookup(central)(null,sheet?.nome);
  if(speciesId==null)throw Error(`Espécie não reconhecida: ${String(sheet?.nome||'').slice(0,60)}.`);
  if(!STATS.every(k=>Number.isInteger(sheet.ivs?.[k])))throw Error('A ficha precisa dos 6 IVs para calcular o PvE.');
@@ -159,15 +160,15 @@ function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.n
  const quote=itemQuotes(itemPrices),parts=target.addons.map(a=>{const current=Number(currentItems?.[a.id]),unit=current>0?current:quote(a.id,now);return {id:a.id,label:a.label,quantity:a.quantity,unit:unit??null,quote:quote(a.id,now)??null,total:unit!=null?Math.round(unit*a.quantity):null};});
  const known=parts.reduce((s,p)=>s+(p.total||0),0),typesOf=id=>central.species.get(id)?.t||[],megaUnit=(shiny,at)=>quote(shiny?MEGA_SHINY:MEGA,at)??0;
  const nota=Number(sheet.nota),fit=marketFit(rows.filter(r=>r.shiny===target.shiny));
- const e=neighbors({...target,at:now,nota:Number.isFinite(nota)&&sheet.nota!=null?nota:null},rows,{addons:known,typesOf,megaUnit,weights:confidenceWeights,fit,...(Number.isFinite(bias)?{bias}:{})});
+ const e=neighbors({...target,at:now,nota:Number.isFinite(nota)&&sheet.nota!=null?nota:null},rows,{addons:known,typesOf,megaUnit,fit,...(Number.isFinite(bias)?{bias}:{})});
  const species=central.species.get(speciesId);
  const result={name:species.n,speciesId,types:species.t||[],family:target.familyName,familyId:target.family,shiny:target.shiny,pve:target.pve,level:target.level,refined,parts,missing:parts.filter(p=>p.total==null).map(p=>p.label)};
  if(!e)return {...result,available:false};
- const comps=e.influence.map(({r,share,closeness})=>({share,closeness:Math.round(closeness*1000)/1000,at:r.at,price:r.price,base:Math.round(r.base),level:r.level,pve:Math.round(r.pve),nota:r.nota??null,speciesId:r.speciesId,name:r.name,shiny:r.shiny,uncertain:r.uncertain===true,refined:r.refined===true,types:central.species.get(r.speciesId)?.t||[]}));
+ const comps=e.influence.map(({r,share,closeness})=>({share,closeness:Math.round(closeness*1000)/1000,at:r.at,price:r.price,base:Math.round(r.base),level:r.level,pve:Math.round(r.pve),nota:r.nota??null,speciesId:r.speciesId,name:r.name,shiny:r.shiny,uncertain:r.uncertain===true,refined:r.refined===true,acertou:typeof r.acertou==='boolean'?r.acertou:null,types:central.species.get(r.speciesId)?.t||[]}));
  const drop=dropLevel(central,rows,speciesId),top=rows.reduce((m,r)=>r.shiny===target.shiny&&r.level>m?r.level:m,target.level),from=Math.min(target.level,drop);
  const levels=[...new Set([...LEVEL_STEPS.filter(l=>l>from&&l<=top),from,target.level])].sort((a,b)=>a-b),here=fit.level(Math.log(target.level));
  const byLevel=levels.map(level=>{const k=Math.exp(fit.level(Math.log(level))-here),p=x=>Math.max(MIN_PRICE,Math.round(x*k+known));return {level,low:p(e.low-known),median:p(e.base),high:p(e.high-known),current:level===target.level,drop:level===drop};});
- return {...result,available:true,low:e.low,median:e.median,high:e.high,byLevel,dropLevel:drop,base:Math.round(e.base),weight:e.weight,familyCount:e.familyCount,marketCount:e.marketCount,uncertain:e.uncertain,confidenceParts:e.parts,confidence:e.confidence,comps};
+ return {...result,available:true,low:e.low,median:e.median,high:e.high,byLevel,dropLevel:drop,base:Math.round(e.base),weight:e.weight,familyCount:e.familyCount,marketCount:e.marketCount,uncertain:e.uncertain,confidence:e.confidence,comps};
 }
 root.PokeIdlePvePricing={describe,prepare,estimate,neighbors,marketFit,confidence,priceSheet,pav,at,itemQuotes,day,MEGA,MEGA_SHINY,MODEL,NEIGHBORS,CONFIDENCE};
 })(window);
