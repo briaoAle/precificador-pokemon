@@ -47,7 +47,9 @@ function prepare(central,sales,itemPrices){
 }
 function pav(points){
  const sorted=[...points].sort((a,b)=>a.x-b.x),blocks=[];
- for(const p of sorted){blocks.push({sum:p.y,n:1,lo:p.x,hi:p.x});while(blocks.length>1){const b=blocks.at(-1),a=blocks.at(-2);if(a.sum/a.n<=b.sum/b.n)break;a.sum+=b.sum;a.n+=b.n;a.hi=b.hi;blocks.pop();}}
+ // Mesmo x (ex.: várias vendas no Nv 1) entra no mesmo bloco, pela média: sem isso a primeira venda do empate
+ // ficava sozinha no primeiro bloco e decidia a curva naquele ponto (bug do Preço por nível do Nv 1, 16/11/2026).
+ for(const p of sorted){const last=blocks.at(-1);if(last&&last.hi===p.x){last.sum+=p.y;last.n++;}else blocks.push({sum:p.y,n:1,lo:p.x,hi:p.x});while(blocks.length>1){const b=blocks.at(-1),a=blocks.at(-2);if(a.sum/a.n<=b.sum/b.n)break;a.sum+=b.sum;a.n+=b.n;a.hi=b.hi;blocks.pop();}}
  return blocks.map(b=>({lo:b.lo,hi:b.hi,y:b.sum/b.n}));
 }
 function at(curve,x){
