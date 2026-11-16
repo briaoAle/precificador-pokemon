@@ -430,7 +430,7 @@
   try{
    const response=await fetch('precos.json',{cache:'no-cache'});if(!response.ok)throw Error(response.status);
    precos=await response.json();rows=PokeIdleCentral.linhas(precos);central=PokeIdleCentral.create(window);
-   $('status').textContent=`Vendas lidas em ${when(Date.parse(precos.geradoEm))} · ${gems(precos.vendas.length)} vendas dos últimos ${precos.janelaDias} dias.`;
+   $('status').textContent=`Vendas lidas em ${when(Date.parse(precos.geradoEm))} · ${gems(rows.length)} vendas dos últimos ${precos.janelaDias} dias.`;
    $('go').disabled=false;
    openLink();addEventListener('hashchange',openLink);
   }catch(e){$('status').textContent='Não foi possível carregar as vendas. Recarregue a página.';$('status').classList.add('warn');}
