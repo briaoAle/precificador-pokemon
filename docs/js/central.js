@@ -3,6 +3,7 @@
  'use strict';
  function create(c){
   const species=new Map(c.PI_ESPECIES.map(e=>[e.id,e])),megas=new Map(),cache=new Map();
+  let notas=null;const gradeOf=(id,p)=>{if(!c.PokeIdleNota)return null;notas??=c.PokeIdleNota.create(species);const v=notas.nota(id,p);return Number.isFinite(v)?v:null;};
   for(const [id,e]of species){const base=e.megaBase??(id>=3000&&id<4000&&/^Mega /i.test(e.n)?id-3000:null);if(species.has(base)){if(!megas.has(base))megas.set(base,[]);megas.get(base).push(id);}}
   function finals(id,includeMegas){
    const result=[],seen=new Set();
@@ -19,6 +20,8 @@
     options.push({id:form.id,name:form.n,types:form.t||[],pve:form.m?.length?power.power:null,tie:form.desempate??0});
    }
    options.sort((a,b)=>b.pve-a.pve||a.tie-b.tie||a.id-b.id);
+   // Nota da última evolução (grade), como no motor: o preço da Mega usa a Nota da forma base.
+   if(options[0])options[0].grade=gradeOf(options[0].id,p);
    const result={speciesId:e?.id||Number(p.speciesId),types:e?.t||[],name:e?.n||p.nome||'Pokémon',final:options[0]||null,alternatives:options};
    if(cache.size>=2000)cache.delete(cache.keys().next().value);cache.set(signature,result);return result;
   }

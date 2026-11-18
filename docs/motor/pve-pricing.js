@@ -16,6 +16,11 @@ function itemQuotes(itemPrices){
 }
 function speciesLookup(central){const byName=new Map();for(const e of central.species.values())if(!byName.has(norm(e.n)))byName.set(norm(e.n),e.id);return (id,name)=>central.species.has(Number(id))?Number(id):byName.get(norm(name))??null;}
 const megaBase=(central,e)=>e?.megaBase??(e&&e.id>=3000&&e.id<4000&&/^Mega /i.test(e.n)?e.id-3000:null);
+function attackIv(e,ivs){
+ const d=(e?.m||[]).filter(m=>(m[3]||0)>0),physical=d.length?d.filter(m=>m[2]!==1).length/d.length:(e?.b?.[1]>=e?.b?.[3]?1:0);
+ const keys=physical>.65?['atk']:physical<.35?['spAtk']:['atk','spAtk'];return Math.min(...keys.map(k=>ivs[k]));
+}
+const notaOf=r=>r?.mega&&Number.isFinite(r.notaBase)?r.notaBase:r?.nota;
 function describe(central,p){
  if(!p||!STATS.every(k=>Number.isInteger(p.ivs?.[k])&&p.ivs[k]>=1&&p.ivs[k]<=32)||!Number.isFinite(p.quality)||!Number.isInteger(p.potencia)||!(p.level>0))return null;
  if(STATS.some(k=>Number(p.refino?.[k])>0))return null;
@@ -27,7 +32,8 @@ function describe(central,p){
  if(p.tmElemental)addons.push({id:B.Z_FRAGMENT,label:'Z-Move '+String(p.tmElemental).toUpperCase(),quantity:PER_ADDON});
  if(yes(p.tmAoe))addons.push({id:B.AOE_FRAGMENT,label:'AoE',quantity:PER_ADDON});
  if(mega)addons.push({id:p.shiny===true?MEGA_SHINY:MEGA,label:p.shiny===true?'Mega Shiny':'Mega',quantity:PER_ADDON});
- return {pve:final.pve,family:final.id,familyName:final.name,shiny:p.shiny===true,level:p.level,addons,mega};
+ return {pve:final.pve,family:final.id,familyName:final.name,shiny:p.shiny===true,level:p.level,addons,mega,
+  ivAtaque:attackIv(central.species.get(final.id),p.ivs),notaBase:mega&&Number.isFinite(final.grade)?final.grade:null};
 }
 function prepare(central,sales,itemPrices){
  const quote=itemQuotes(itemPrices),find=speciesLookup(central),rows=[],skipped={};
@@ -41,14 +47,12 @@ function prepare(central,sales,itemPrices){
   if(addons==null){skip('sem cotação dos Adicionais');continue;}
   const base=s.price-addons;if(!(base>0)){skip('Adicionais acima do preço');continue;}
   const uncertain=far||(!!s.ficha?.tmElemental||yes(s.ficha?.tmAoe))&&!(s.readAt>=s.at&&s.readAt-s.at<=LATE_READ_MS);
-  rows.push({at:s.at,price:s.price,base,logBase:Math.log(base),addons,hasAddons:d.addons.length>0,mega:d.addons.some(a=>a.id===MEGA||a.id===MEGA_SHINY),pve:d.pve,family:d.family,familyName:d.familyName,shiny:d.shiny,level:d.level,speciesId,name:s.name,nota:Number.isFinite(s.ficha?.nota)?s.ficha.nota:null,uncertain,refined});
+  rows.push({at:s.at,price:s.price,base,logBase:Math.log(base),addons,hasAddons:d.addons.length>0,mega:d.addons.some(a=>a.id===MEGA||a.id===MEGA_SHINY),pve:d.pve,family:d.family,familyName:d.familyName,shiny:d.shiny,level:d.level,speciesId,name:s.name,nota:Number.isFinite(s.ficha?.nota)?s.ficha.nota:null,notaBase:d.notaBase,ivAtaque:d.ivAtaque,uncertain,refined});
  }
  return {rows,skipped};
 }
 function pav(points){
  const sorted=[...points].sort((a,b)=>a.x-b.x),blocks=[];
- // Mesmo x (ex.: várias vendas no Nv 1) entra no mesmo bloco, pela média: sem isso a primeira venda do empate
- // ficava sozinha no primeiro bloco e decidia a curva naquele ponto (bug do Preço por nível do Nv 1, 16/11/2026).
  for(const p of sorted){const last=blocks.at(-1);if(last&&last.hi===p.x){last.sum+=p.y;last.n++;}else blocks.push({sum:p.y,n:1,lo:p.x,hi:p.x});while(blocks.length>1){const b=blocks.at(-1),a=blocks.at(-2);if(a.sum/a.n<=b.sum/b.n)break;a.sum+=b.sum;a.n+=b.n;a.hi=b.hi;blocks.pop();}}
  return blocks.map(b=>({lo:b.lo,hi:b.hi,y:b.sum/b.n}));
 }
@@ -88,18 +92,19 @@ function marketLine(points){
  return (x,l)=>my+b*(x-mx)+c*(l-ml);
 }
 function marketFit(same){
- const L=same.filter(r=>Number.isFinite(r.nota));
+ const L=same.filter(r=>Number.isFinite(notaOf(r)));
  if(L.length<MIN_MARKET){const line=marketLine(same.map(r=>({x:Math.log(r.pve),l:Math.log(r.level),y:r.logBase}))),g=(x,l)=>line(x,l);g.level=l=>line(0,l)-line(0,0);return g;}
- const y=L.map(r=>r.logBase),X={pve:L.map(r=>Math.log(r.pve)),nota:L.map(r=>r.nota),level:L.map(r=>Math.log(r.level))},n=L.length;
- const mean=a=>a.reduce((s,v)=>s+v,0)/a.length,a0=mean(y),f={pve:()=>0,nota:()=>0,level:()=>0};
+ const mean=a=>a.reduce((s,v)=>s+v,0)/a.length,ivs=L.map(r=>r.ivAtaque).filter(Number.isFinite),ivMean=ivs.length?mean(ivs):0;
+ const y=L.map(r=>r.logBase),X={pve:L.map(r=>Math.log(r.pve)),nota:L.map(notaOf),iv:L.map(r=>Number.isFinite(r.ivAtaque)?r.ivAtaque:ivMean),level:L.map(r=>Math.log(r.level))},n=L.length;
+ const a0=mean(y),f={pve:()=>0,nota:()=>0,iv:()=>0,level:()=>0};
  const line=(xs,ys)=>{const mx=mean(xs),my=mean(ys);let sxy=0,sxx=0;for(let i=0;i<n;i++){sxy+=(xs[i]-mx)*(ys[i]-my);sxx+=(xs[i]-mx)**2;}const k=sxx>1e-9?Math.max(0,sxy/sxx):0;return x=>k*(x-mx);};
  const curve=(xs,ys)=>{const c=pav(xs.map((x,i)=>({x,y:ys[i]})));return x=>at(c,x);};
- for(let pass=0;pass<6;pass++)for(const k of ['pve','nota','level']){
+ for(let pass=0;pass<6;pass++)for(const k of ['pve','nota','iv','level']){
   const others=Object.keys(f).filter(j=>j!==k),res=y.map((v,i)=>v-a0-others.reduce((s,j)=>s+f[j](X[j][i]),0));
   const g=(k==='pve'?line:curve)(X[k],res),m=mean(X[k].map(g));f[k]=x=>g(x)-m;
  }
  const notaMean=mean(X.nota);
- const g=(x,l,nota)=>a0+f.pve(x)+f.nota(Number.isFinite(nota)?nota:notaMean)+f.level(l);g.level=l=>f.level(l);return g;
+ const g=(x,l,nota,iv)=>a0+f.pve(x)+f.nota(Number.isFinite(nota)?nota:notaMean)+f.iv(Number.isFinite(iv)?iv:ivMean)+f.level(l);g.level=l=>f.level(l);return g;
 }
 function weightedQuantile(points,q){const s=[...points].sort((a,b)=>a.v-b.v),total=s.reduce((t,p)=>t+p.w,0);let acc=0;for(const p of s){acc+=p.w;if(acc>=q*total)return p.v;}return s.at(-1).v;}
 function confidence(list){
@@ -112,18 +117,18 @@ function neighbors(target,rows,{addons=0,typesOf=()=>[],megaUnit=()=>0,cfg=NEIGH
  if(!target||addons==null)return null;
  const same=rows.filter(r=>r.shiny===target.shiny),near=same.filter(r=>nearLevel(r.level,target.level)),market=near.length>=MIN_MARKET?near:same;
  if(market.length<3)return null;
- const fit=given||marketFit(same),mine=typesOf(target.family),notaW=r=>cfg.notaSigma&&Number.isFinite(r.nota)&&Number.isFinite(target.nota)?Math.exp(-(((r.nota-target.nota)/cfg.notaSigma)**2)/2):1;
+ const fit=given||marketFit(same),mine=typesOf(target.family),tNota=notaOf(target),notaW=r=>{const a=notaOf(r);return cfg.notaSigma&&Number.isFinite(a)&&Number.isFinite(tNota)?Math.exp(-(((a-tNota)/cfg.notaSigma)**2)/2):1;};
  const layerOf=r=>{if(r.family===target.family)return 0;const t=typesOf(r.family);if(mine.length&&t.length===mine.length&&mine.every(x=>t.includes(x)))return 1;return mine.some(x=>t.includes(x))?2:3;};
  const at=target.at??Date.now(),pts=[];
  for(const r of same){
   const layer=layerOf(r),w=(r.refined?cfg.refinedWeight??1:1)*(cfg.megaWeight&&!!r.mega!==!!target.mega?cfg.megaWeight:1)*cfg.layers[layer]*Math.exp(-((Math.log(r.level/target.level)/cfg.levelSigma)**2)/2)*Math.exp(-((Math.log(r.pve/target.pve)/cfg.pveSigma)**2)/2)*notaW(r)*.5**((at-r.at)/(cfg.halfLifeDays*DAY_MS));
-  if(!(w>=cfg.minWeight))continue;const expected=fit(Math.log(r.pve),Math.log(r.level),r.nota),uncertain=r.uncertain===true;
+  if(!(w>=cfg.minWeight))continue;const expected=fit(Math.log(r.pve),Math.log(r.level),notaOf(r),r.ivAtaque),uncertain=r.uncertain===true;
   if(!uncertain){pts.push({v:r.logBase-expected,w,layer,uncertain,r});continue;}
   const plain=Math.max(1,r.price-(r.mega?PER_ADDON*megaUnit(r.shiny,r.at):0));
   const up=cfg.uncertainPlain??.5;pts.push({v:r.logBase-expected,w:w*(1-up),layer,uncertain,r},{v:Math.log(plain)-expected,w:w*up,layer,uncertain,r});
  }
  if(!pts.length)return null;
- const mid=weightedQuantile(pts,.5),lo=weightedQuantile(pts,.25)-mid,hi=weightedQuantile(pts,.75)-mid,center=fit(Math.log(target.pve),Math.log(target.level),target.nota)+mid-bias;
+ const mid=weightedQuantile(pts,.5),lo=weightedQuantile(pts,.25)-mid,hi=weightedQuantile(pts,.75)-mid,center=fit(Math.log(target.pve),Math.log(target.level),tNota,target.ivAtaque)+mid-bias;
  const price=x=>Math.max(MIN_PRICE,Math.round(Math.exp(x)+addons)),sum=f=>pts.filter(f).reduce((s,p)=>s+p.w,0),W=sum(()=>true);
  const close=pts.filter(p=>p.layer<=1),cw=close.reduce((s,p)=>s+p.w,0),neff=cw?cw**2/close.reduce((s,p)=>s+p.w*p.w,0):0;
  const parts={proximidade:neff/(neff+5),certeza:sum(p=>!p.uncertain)/W,consistencia:Math.exp(-(hi-lo)),ampliacao:sum(p=>p.layer===0)/W};

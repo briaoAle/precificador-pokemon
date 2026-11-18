@@ -3,6 +3,9 @@
 (function(){
  'use strict';
  const NOVIDADES=[
+  {data:'18/11/2026',itens:[
+   'O preço das Megas agora usa a Nota da forma sem Mega. Antes, a Nota maior da Mega chegava a dobrar o preço, sem o mercado pagar isso. As pedras Mega continuam somadas à parte.',
+   'O preço agora também olha o IV do ataque que o Pokémon usa: o de Atk para quem tem golpes físicos, o de Sp.Atk para quem tem golpes especiais e o menor dos dois para quem mistura. Com o resto igual, IV de ataque maior dá preço maior.']},
   {data:'10/11/2026',itens:[
    'O preço agora dá mais peso às vendas de nível parecido e separa melhor Pokémon Mega de não Mega. A Proximidade da tabela de vendas acompanha essa mudança.']},
   {data:'09/11/2026',itens:[
