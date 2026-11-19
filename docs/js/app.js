@@ -155,7 +155,8 @@
   const how=[el('h4',null,'Detalhes técnicos'),
    para('Pesos.','Uma venda de duas semanas atrás vale metade de uma de hoje. Uma venda com PvE 19% diferente, ou com Nota 0,35 diferente, também vale metade.'),
    para('Referência do mercado.','Todas as vendas do mesmo tipo (shiny ou não) formam uma curva de quanto o mercado paga por PvE, Nota e nível. A Nota é a que mais pesa; o nível quase não muda o preço até o Nv 100 e sobe depois. De cada venda entra só o quanto ela saiu acima ou abaixo dessa curva, e não o preço: é assim que outra espécie ajuda sem copiar o preço dela.'),
-   ...(precos.correcao?.bias?[para('Correção.',`Nas vendas dos últimos ${precos.correcao.dias} dias, o cálculo saía em média ${pct(Math.abs(Math.exp(precos.correcao.bias)-1))}% ${precos.correcao.bias>0?'acima':'abaixo'} do valor pago. Esse desvio já vem descontado dos três números.`)]:[]),
+   // Correção do grupo da ficha (shiny ou não, desde 18/11/2026); precos.json antigo traz só a única.
+   ...((cb=>cb?[para('Correção.',`Nas vendas ${r.shiny?'shiny':'não shiny'} dos últimos ${precos.correcao.dias} dias, o cálculo saía em média ${pct(Math.abs(Math.exp(cb)-1))}% ${cb>0?'acima':'abaixo'} do valor pago. Esse desvio já vem descontado dos três números.`)]:[])(r.correcao??precos.correcao?.bias)),
    para('Adicionais.','Cada um conta 10 unidades do item (fragmentos de Z-Move ou AoE, pedras Mega) pela mediana do menor anúncio do dia. O valor sai de cada venda antes da comparação e volta no fim, pelo preço de hoje.'),
    para('Adicional incerto.',`O jogo mostra o AoE e o Z-Move de hoje, não os da venda. Na dúvida, o valor deles não é descontado, para o cálculo errar para cima.${u.family?` Aqui, ${gems(u.family)} das ${gems(r.familyCount)} vendas ${ch.of} estão nesse caso.`:''}`),
    para('Refino.','Os Pokémon são comparados sem refino: uma venda refinada conta como se não tivesse refino.')];
@@ -401,7 +402,7 @@
   if(!lastSheet)return false;
   const sim=simulated(lastSheet),sheet=sim||lastSheet,simFrom=sim?{name:speciesOf(lastSheet).n,id:speciesOf(lastSheet).id,level:lastSheet.level}:null;
   // O tipo do Z-Move não muda o preço (o fragmento é o mesmo): vai um tipo qualquer e a linha mostra só "Z-Move".
-  try{const r=P.priceSheet(central,{...sheet,nota:notaOf(sheet),tmElemental:$('zmove').checked?'NORMAL':null,tmAoe:$('aoe').checked},{rows,itemPrices:precos.itens,currentItems:loadItems(),now:Date.parse(precos.geradoEm),bias:precos.correcao?.bias});
+  try{const r=P.priceSheet(central,{...sheet,nota:notaOf(sheet),tmElemental:$('zmove').checked?'NORMAL':null,tmAoe:$('aoe').checked},{rows,itemPrices:precos.itens,currentItems:loadItems(),now:Date.parse(precos.geradoEm),bias:precos.correcao?.bias,correcao:precos.correcao});
    render({...r,simFrom,nota:sheet.nota,notaPreco:notaOf(sheet),potencia:sheet.potencia,quality:sheet.quality,ivSum:Object.values(sheet.ivs||{}).reduce((s,v)=>s+v,0),parts:r.parts.map(p=>/^Z-Move/.test(p.label)?{...p,label:'Z-Move'}:p),missing:(r.missing||[]).map(l=>/^Z-Move/.test(l)?'Z-Move':l)});}
   catch(e){error(e.message);return false;}
   return true;

@@ -17,8 +17,13 @@ function itemQuotes(itemPrices){
 function speciesLookup(central){const byName=new Map();for(const e of central.species.values())if(!byName.has(norm(e.n)))byName.set(norm(e.n),e.id);return (id,name)=>central.species.has(Number(id))?Number(id):byName.get(norm(name))??null;}
 const megaBase=(central,e)=>e?.megaBase??(e&&e.id>=3000&&e.id<4000&&/^Mega /i.test(e.n)?e.id-3000:null);
 function attackIv(e,ivs){
- const d=(e?.m||[]).filter(m=>(m[3]||0)>0),physical=d.length?d.filter(m=>m[2]!==1).length/d.length:(e?.b?.[1]>=e?.b?.[3]?1:0);
- const keys=physical>.65?['atk']:physical<.35?['spAtk']:['atk','spAtk'];return Math.min(...keys.map(k=>ivs[k]));
+ const atk=e?.b?.[1]||0,spAtk=e?.b?.[3]||0,share=atk+spAtk>0?atk/(atk+spAtk):.5;
+ if(Math.abs(share-.5)>.03+1e-9)return share>.5?ivs.atk:ivs.spAtk;
+ const lo=Math.min(ivs.atk,ivs.spAtk),hi=Math.max(ivs.atk,ivs.spAtk);return Math.round((2*lo+hi)/3*100)/100;
+}
+function biasFor(correcao,shiny){
+ const g=correcao?.[shiny?'shiny':'normal']?.bias;
+ return Number.isFinite(g)?g:Number.isFinite(correcao?.bias)?correcao.bias:undefined;
 }
 const notaOf=r=>r?.mega&&Number.isFinite(r.notaBase)?r.notaBase:r?.nota;
 function describe(central,p){
@@ -157,7 +162,7 @@ function dropLevel(central,rows,speciesId){
  const total=[...count.values()].reduce((a,b)=>a+b,0),[level,n]=[...count].sort((a,b)=>b[1]-a[1])[0]||[];
  return n>=5&&n/total>=.3?level:chainCap(central,id);
 }
-function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.now(),bias}){
+function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.now(),bias,correcao}){
  const speciesId=speciesLookup(central)(null,sheet?.nome);
  if(speciesId==null)throw Error(`Espécie não reconhecida: ${String(sheet?.nome||'').slice(0,60)}.`);
  if(!STATS.every(k=>Number.isInteger(sheet.ivs?.[k])))throw Error('A ficha precisa dos 6 IVs para calcular o PvE.');
@@ -166,8 +171,8 @@ function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.n
  if(!target)throw Error('Não foi possível calcular o PvE desta ficha.');
  const quote=itemQuotes(itemPrices),parts=target.addons.map(a=>{const current=Number(currentItems?.[a.id]),unit=current>0?current:quote(a.id,now);return {id:a.id,label:a.label,quantity:a.quantity,unit:unit??null,quote:quote(a.id,now)??null,total:unit!=null?Math.round(unit*a.quantity):null};});
  const known=parts.reduce((s,p)=>s+(p.total||0),0),typesOf=id=>central.species.get(id)?.t||[],megaUnit=(shiny,at)=>quote(shiny?MEGA_SHINY:MEGA,at)??0;
- const nota=Number(sheet.nota),fit=marketFit(rows.filter(r=>r.shiny===target.shiny));
- const e=neighbors({...target,at:now,nota:Number.isFinite(nota)&&sheet.nota!=null?nota:null},rows,{addons:known,typesOf,megaUnit,fit,...(Number.isFinite(bias)?{bias}:{})});
+ const nota=Number(sheet.nota),fit=marketFit(rows.filter(r=>r.shiny===target.shiny)),b=correcao?biasFor(correcao,target.shiny):bias;
+ const e=neighbors({...target,at:now,nota:Number.isFinite(nota)&&sheet.nota!=null?nota:null},rows,{addons:known,typesOf,megaUnit,fit,...(Number.isFinite(b)?{bias:b}:{})});
  const species=central.species.get(speciesId);
  const result={name:species.n,speciesId,types:species.t||[],family:target.familyName,familyId:target.family,shiny:target.shiny,pve:target.pve,level:target.level,refined,parts,missing:parts.filter(p=>p.total==null).map(p=>p.label)};
  if(!e)return {...result,available:false};
@@ -175,7 +180,7 @@ function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.n
  const drop=dropLevel(central,rows,speciesId),top=rows.reduce((m,r)=>r.shiny===target.shiny&&r.level>m?r.level:m,target.level),from=Math.min(target.level,drop);
  const levels=[...new Set([...LEVEL_STEPS.filter(l=>l>from&&l<=top),from,target.level])].sort((a,b)=>a-b),here=fit.level(Math.log(target.level));
  const byLevel=levels.map(level=>{const k=Math.exp(fit.level(Math.log(level))-here),p=x=>Math.max(MIN_PRICE,Math.round(x*k+known));return {level,low:p(e.low-known),median:p(e.base),high:p(e.high-known),current:level===target.level,drop:level===drop};});
- return {...result,available:true,low:e.low,median:e.median,high:e.high,byLevel,dropLevel:drop,base:Math.round(e.base),weight:e.weight,familyCount:e.familyCount,marketCount:e.marketCount,uncertain:e.uncertain,confidence:e.confidence,comps};
+ return {...result,available:true,low:e.low,median:e.median,high:e.high,byLevel,dropLevel:drop,base:Math.round(e.base),weight:e.weight,familyCount:e.familyCount,marketCount:e.marketCount,uncertain:e.uncertain,confidence:e.confidence,correcao:Number.isFinite(b)?b:null,comps};
 }
-root.PokeIdlePvePricing={describe,prepare,estimate,neighbors,marketFit,confidence,priceSheet,pav,at,itemQuotes,day,MEGA,MEGA_SHINY,MODEL,NEIGHBORS,CONFIDENCE};
+root.PokeIdlePvePricing={describe,biasFor,prepare,estimate,neighbors,marketFit,confidence,priceSheet,pav,at,itemQuotes,day,MEGA,MEGA_SHINY,MODEL,NEIGHBORS,CONFIDENCE};
 })(window);

@@ -5,7 +5,8 @@
  const NOVIDADES=[
   {data:'18/11/2026',itens:[
    'O preço das Megas agora usa a Nota da forma sem Mega. Antes, a Nota maior da Mega chegava a dobrar o preço, sem o mercado pagar isso. As pedras Mega continuam somadas à parte.',
-   'O preço agora também olha o IV do ataque que o Pokémon usa: o de Atk para quem tem golpes físicos, o de Sp.Atk para quem tem golpes especiais e o menor dos dois para quem mistura. Com o resto igual, IV de ataque maior dá preço maior.']},
+   'O preço agora também olha o IV do ataque que o Pokémon usa, pela regra do jogo: o de Atk quando o Atk base passa de 53% da soma de Atk e Sp.Atk, o de Sp.Atk quando fica abaixo de 47% e, entre os dois, 2/3 do menor IV mais 1/3 do maior. Com o resto igual, IV de ataque maior dá preço maior.',
+   'A correção do desvio dos últimos 7 dias agora é separada para shiny e não shiny. Antes era uma só, puxada pelos Pokémon comuns, e o preço dos shiny saía cerca de 6% acima do valor pago (10% nas Megas shiny).']},
   {data:'10/11/2026',itens:[
    'O preço agora dá mais peso às vendas de nível parecido e separa melhor Pokémon Mega de não Mega. A Proximidade da tabela de vendas acompanha essa mudança.']},
   {data:'09/11/2026',itens:[

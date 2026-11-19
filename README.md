@@ -33,7 +33,8 @@ O cálculo segue estes passos:
    peso.
 4. **Três preços:** o Preço justo é a mediana ponderada dessas vendas, e Vender rápido e Esperar são o 1º e o 3º
    quartis. Como é mediana, uma venda muito cara ou muito barata não puxa o resultado pelo valor.
-5. **Correção:** o desvio médio do cálculo nas vendas dos últimos 7 dias é descontado dos três números.
+5. **Correção:** o desvio médio do cálculo nas vendas dos últimos 7 dias, separado para shiny e não shiny, é descontado
+   dos três números.
 
 O refino não entra no preço: vendas refinadas contam como se não tivessem refino.
 
