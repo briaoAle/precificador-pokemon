@@ -196,7 +196,7 @@
   more.addEventListener('click',()=>{open=!open;draw();});
   function draw(){
    // A coluna Observação só aparece quando alguma venda da lista completa tem observação: assim ela não some ao ordenar.
-   const sign=sort.dir==='asc'?1:-1,list=[...comps].sort((a,b)=>((a[sort.key]??-1)-(b[sort.key]??-1))*sign||b.at-a.at),hasObs=comps.some(c=>c.uncertain),obsHead=el('th','obs','Observação');obsHead.scope='col';
+   const sign=sort.dir==='asc'?1:-1,list=[...comps].sort((a,b)=>((a[sort.key]??-1)-(b[sort.key]??-1))*sign||b.at-a.at),hasObs=comps.some(c=>c.uncertain||c.zmove||c.aoe),obsHead=el('th','obs','Observação');obsHead.scope='col';
    const formHead=el('th',null,'Forma');formHead.scope='col';
    head.replaceChildren(...(showForm?[formHead]:[]),...cols.map(c=>{const th=el('th');th.scope='col';const b=el('button',null,c.label+(sort.key===c.key?(sort.dir==='asc'?' ↑':' ↓'):''));b.type='button';
     if(sort.key===c.key)th.setAttribute('aria-sort',sort.dir==='asc'?'ascending':'descending');
@@ -207,9 +207,10 @@
     b.onclick=()=>{sort=sort.key===c.key?{key:c.key,dir:sort.dir==='asc'?'desc':'asc'}:{key:c.key,dir:'desc'};draw();};th.append(b);return th;}),...(hasObs?[obsHead]:[]));
    body.replaceChildren(...list.slice(0,open?list.length:FIRST).map(c=>{
     const tr=el('tr'),price=el('td','paid',gems(c.price));
-    // Observação numa coluna própria: só o Adicional incerto (o refino é explicado na auditoria, não aqui).
-    const obs=el('td','obs'),marks=[];
-    if(c.uncertain){const m=el('span','warn','Adicional incerto');m.title='O jogo mostra o AoE e o Z-Move que o Pokémon tem hoje: esta venda foi lida depois e eles podem ter sido aplicados pelo comprador';marks.push(m);}
+    // Observação numa coluna própria: Z-Move e AoE da venda e o Adicional incerto (o refino é explicado na auditoria, não aqui).
+    const obs=el('td','obs'),marks=[],late='O jogo mostra o AoE e o Z-Move que o Pokémon tem hoje: esta venda foi lida depois e eles podem ter sido aplicados pelo comprador';
+    for(const [on,label]of [[c.zmove,'Z-Move'],[c.aoe,'AoE']])if(on){const m=el('span',c.uncertain?'warn':null,label+(c.uncertain?' (incerto)':''));m.title=c.uncertain?late:'A venda tinha este Adicional; o valor dele já está somado em Gemas';marks.push(m);}
+    if(c.uncertain&&!c.zmove&&!c.aoe){const m=el('span','warn','Adicional incerto');m.title='A cotação dos Adicionais desta venda é de outro dia';marks.push(m);}
     marks.forEach((m,i)=>{if(i)obs.append(' · ');obs.append(m);});
     tr.title=`${c.name}${c.shiny?' shiny':''}`;
     if(showForm)tr.append(el('td',null,c.name));

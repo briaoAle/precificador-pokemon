@@ -3,6 +3,8 @@
 (function(){
  'use strict';
  const NOVIDADES=[
+  {data:'19/11/2026',itens:[
+   'A tabela de vendas parecidas agora mostra, na coluna Observação, se a venda tinha Z-Move ou AoE. Quando o jogo não garante que eles já estavam no Pokémon na hora da venda, aparece "(incerto)".']},
   {data:'18/11/2026',itens:[
    'O preço das Megas agora usa a Nota da forma sem Mega. Antes, a Nota maior da Mega chegava a dobrar o preço, sem o mercado pagar isso. As pedras Mega continuam somadas à parte.',
    'O preço agora também olha o IV do ataque que o Pokémon usa, pela regra do jogo: o de Atk quando o Atk base passa de 53% da soma de Atk e Sp.Atk, o de Sp.Atk quando fica abaixo de 47% e, entre os dois, 2/3 do menor IV mais 1/3 do maior. Com o resto igual, IV de ataque maior dá preço maior.',
