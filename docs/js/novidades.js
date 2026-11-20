@@ -3,6 +3,8 @@
 (function(){
  'use strict';
  const NOVIDADES=[
+  {data:'20/11/2026',itens:[
+   'Uma forma evoluída não sai mais barata que a anterior com a mesma ficha: quando sairia, o Preço justo fica igual ao da forma anterior, e a página avisa. Antes, cerca de 9% dos passos de evolução comuns e 4% dos shiny saíam mais baratos, como Pupitar mais caro que Tyranitar. No teste com as vendas passadas, o acerto ficou igual e a Confiança melhorou um pouco. A Mega fica de fora: ela continua com o preço dela, com as pedras somadas à parte.']},
   {data:'19/11/2026',itens:[
    'A tabela de vendas parecidas agora mostra, na coluna Observação, se a venda tinha Z-Move ou AoE. Quando o jogo não garante que eles já estavam no Pokémon na hora da venda, aparece "(incerto)".']},
   {data:'18/11/2026',itens:[

@@ -52,7 +52,8 @@ function prepare(central,sales,itemPrices){
   if(addons==null){skip('sem cotação dos Adicionais');continue;}
   const base=s.price-addons;if(!(base>0)){skip('Adicionais acima do preço');continue;}
   const uncertain=far||(!!s.ficha?.tmElemental||yes(s.ficha?.tmAoe))&&!(s.readAt>=s.at&&s.readAt-s.at<=LATE_READ_MS);
-  rows.push({at:s.at,price:s.price,base,logBase:Math.log(base),addons,hasAddons:d.addons.length>0,mega:d.addons.some(a=>a.id===MEGA||a.id===MEGA_SHINY),pve:d.pve,family:d.family,familyName:d.familyName,shiny:d.shiny,level:d.level,speciesId,name:s.name,nota:Number.isFinite(s.ficha?.nota)?s.ficha.nota:null,notaBase:d.notaBase,ivAtaque:d.ivAtaque,uncertain,refined,zmove:!!s.ficha?.tmElemental,aoe:yes(s.ficha?.tmAoe)});
+  rows.push({at:s.at,price:s.price,base,logBase:Math.log(base),addons,hasAddons:d.addons.length>0,mega:d.addons.some(a=>a.id===MEGA||a.id===MEGA_SHINY),pve:d.pve,family:d.family,familyName:d.familyName,shiny:d.shiny,level:d.level,speciesId,name:s.name,nota:Number.isFinite(s.ficha?.nota)?s.ficha.nota:null,notaBase:d.notaBase,ivAtaque:d.ivAtaque,uncertain,refined,zmove:!!s.ficha?.tmElemental,aoe:yes(s.ficha?.tmAoe),
+   ficha:{level:d.level,potencia:s.ficha.potencia,quality:s.ficha.quality,shiny:d.shiny,ivs:s.ficha.ivs,tmElemental:s.ficha.tmElemental||null,tmAoe:yes(s.ficha.tmAoe)}});
  }
  return {rows,skipped};
 }
@@ -142,6 +143,27 @@ function neighbors(target,rows,{addons=0,typesOf=()=>[],megaUnit=()=>0,cfg=NEIGH
  return {low:price(center+lo),median:price(center),high:price(center+hi),rawMedian:price(center+bias),base:Math.exp(center),addons,weight:parts.ampliacao,familyCount:family.length,marketCount:same.length,
   parts,confidence:confidence([...measured].map(([r,w])=>({w,hit:r.acertou}))),influence:influence(pts,W),uncertain:{family:family.filter(r=>r.uncertain).length,market:same.filter(r=>r.uncertain).length}};
 }
+const parentMaps=new WeakMap();
+function parentsOf(central){
+ if(!parentMaps.has(central)){
+  const kids=id=>central.edges?[...(central.edges.get(id)||[])]:(central.species.get(id)?.evo||[]),m=new Map();
+  for(const [id]of central.species)for(const k of kids(id))if(k!==id&&central.species.has(k)){if(!m.has(k))m.set(k,[]);m.get(k).push(id);}
+  parentMaps.set(central,m);
+ }
+ return parentMaps.get(central);
+}
+function earlierForms(central,p,target){
+ if(!target||target.mega)return [];
+ const parents=parentsOf(central),out=[],seen=new Set([Number(p.speciesId)]);
+ const visit=id=>{for(const a of parents.get(id)||[]){if(seen.has(a))continue;seen.add(a);
+  const d=describe(central,{...p,speciesId:a});if(!d||d.mega||d.family!==target.family)continue;
+  const n=typeof central.nota==='function'?central.nota(a,p):null;out.push({id:a,target:{...d,nota:Number.isFinite(n)?n:null}});visit(a);}};
+ visit(Number(p.speciesId));return out;
+}
+function withFloor(e,forms,priceOf){
+ for(const f of forms){if(!e)break;const a=priceOf(f.target);if(a&&a.median>e.median)e={...e,low:a.low,median:a.median,high:a.high,rawMedian:a.rawMedian,base:a.base,piso:f.id};}
+ return e;
+}
 const MODEL={k:5,variant:'curve'};
 const LEVEL_STEPS=[20,40,60,80,100,150,200,300,500,700,1000,1500,2000,3000,5000,10000];
 const CAP_LADDER={1:[100],2:[40,100],3:[20,40,100],4:[20,40,70,100]},chains=new WeakMap();
@@ -167,12 +189,13 @@ function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.n
  if(speciesId==null)throw Error(`Espécie não reconhecida: ${String(sheet?.nome||'').slice(0,60)}.`);
  if(!STATS.every(k=>Number.isInteger(sheet.ivs?.[k])))throw Error('A ficha precisa dos 6 IVs para calcular o PvE.');
  const refined=Object.keys(sheet.refinoActual||{}).length>0;
- const target=describe(central,{speciesId,level:sheet.level,potencia:sheet.potencia,quality:sheet.quality,shiny:sheet.shiny===true,ivs:sheet.ivs,tmElemental:sheet.tmElemental||null,tmAoe:sheet.tmAoe===true,refino:{}});
+ const p={speciesId,level:sheet.level,potencia:sheet.potencia,quality:sheet.quality,shiny:sheet.shiny===true,ivs:sheet.ivs,tmElemental:sheet.tmElemental||null,tmAoe:sheet.tmAoe===true,refino:{}},target=describe(central,p);
  if(!target)throw Error('Não foi possível calcular o PvE desta ficha.');
  const quote=itemQuotes(itemPrices),parts=target.addons.map(a=>{const current=Number(currentItems?.[a.id]),unit=current>0?current:quote(a.id,now);return {id:a.id,label:a.label,quantity:a.quantity,unit:unit??null,quote:quote(a.id,now)??null,total:unit!=null?Math.round(unit*a.quantity):null};});
  const known=parts.reduce((s,p)=>s+(p.total||0),0),typesOf=id=>central.species.get(id)?.t||[],megaUnit=(shiny,at)=>quote(shiny?MEGA_SHINY:MEGA,at)??0;
  const nota=Number(sheet.nota),fit=marketFit(rows.filter(r=>r.shiny===target.shiny)),b=correcao?biasFor(correcao,target.shiny):bias;
- const e=neighbors({...target,at:now,nota:Number.isFinite(nota)&&sheet.nota!=null?nota:null},rows,{addons:known,typesOf,megaUnit,fit,...(Number.isFinite(b)?{bias:b}:{})});
+ const opts={addons:known,typesOf,megaUnit,fit,...(Number.isFinite(b)?{bias:b}:{})};
+ const e=withFloor(neighbors({...target,at:now,nota:Number.isFinite(nota)&&sheet.nota!=null?nota:null},rows,opts),earlierForms(central,p,target),t=>neighbors({...t,at:now},rows,opts));
  const species=central.species.get(speciesId);
  const result={name:species.n,speciesId,types:species.t||[],family:target.familyName,familyId:target.family,shiny:target.shiny,pve:target.pve,level:target.level,refined,parts,missing:parts.filter(p=>p.total==null).map(p=>p.label)};
  if(!e)return {...result,available:false};
@@ -180,7 +203,8 @@ function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.n
  const drop=dropLevel(central,rows,speciesId),top=rows.reduce((m,r)=>r.shiny===target.shiny&&r.level>m?r.level:m,target.level),from=Math.min(target.level,drop);
  const levels=[...new Set([...LEVEL_STEPS.filter(l=>l>from&&l<=top),from,target.level])].sort((a,b)=>a-b),here=fit.level(Math.log(target.level));
  const byLevel=levels.map(level=>{const k=Math.exp(fit.level(Math.log(level))-here),p=x=>Math.max(MIN_PRICE,Math.round(x*k+known));return {level,low:p(e.low-known),median:p(e.base),high:p(e.high-known),current:level===target.level,drop:level===drop};});
- return {...result,available:true,low:e.low,median:e.median,high:e.high,byLevel,dropLevel:drop,base:Math.round(e.base),weight:e.weight,familyCount:e.familyCount,marketCount:e.marketCount,uncertain:e.uncertain,confidence:e.confidence,correcao:Number.isFinite(b)?b:null,comps};
+ return {...result,available:true,low:e.low,median:e.median,high:e.high,byLevel,dropLevel:drop,base:Math.round(e.base),weight:e.weight,familyCount:e.familyCount,marketCount:e.marketCount,uncertain:e.uncertain,confidence:e.confidence,correcao:Number.isFinite(b)?b:null,comps,
+  piso:e.piso!=null?{speciesId:e.piso,name:central.species.get(e.piso)?.n||''}:null};
 }
-root.PokeIdlePvePricing={describe,biasFor,prepare,estimate,neighbors,marketFit,confidence,priceSheet,pav,at,itemQuotes,day,MEGA,MEGA_SHINY,MODEL,NEIGHBORS,CONFIDENCE};
+root.PokeIdlePvePricing={earlierForms,withFloor,describe,biasFor,prepare,estimate,neighbors,marketFit,confidence,priceSheet,pav,at,itemQuotes,day,MEGA,MEGA_SHINY,MODEL,NEIGHBORS,CONFIDENCE};
 })(window);

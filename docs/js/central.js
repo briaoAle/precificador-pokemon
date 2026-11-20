@@ -27,7 +27,9 @@
   }
   // As sprites públicas vão até o dex 1025; Megas e formas regionais usam a da espécie base.
   function spriteId(id){const e=species.get(Number(id));if(Number.isInteger(e?.spriteId))return e.spriteId;id=Number(id);return id<=1025?id:id>=13000?id%1000:id>=3000&&id<4000?id-3000:null;}
-  return {species,megas,finals,evaluate,spriteId};
+  // Nota de uma ficha como se fosse da espécie id (o piso por forma do Preço justo).
+  const nota=(id,p)=>gradeOf(Number(id),{...p,refino:{}});
+  return {species,megas,finals,evaluate,spriteId,nota};
  }
  // Vendas em colunas (formato 2): cada campo é uma lista, na ordem das vendas. Sem isso o nome de cada campo se repetia em
  // todas as vendas e o arquivo passava de 12 MB. Tipos: "t" = horário em minutos desde a venda anterior (a primeira, desde

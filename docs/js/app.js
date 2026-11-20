@@ -307,6 +307,8 @@
     block.append(box,el('p','muted small confnote',`Em vendas parecidas, o Preço justo ficou a até 25% do valor pago ${c.percent/10} em cada 10 vezes.`));}
    if(weak)block.append(lowNote());
    if(block.childNodes.length)row.append(block);nodes.push(row);
+   // Piso por forma (20/11/2026): a forma evoluída não sai mais barata que a anterior com a mesma ficha.
+   if(r.piso)nodes.push(el('p','small',`Preço igual ao desta ficha como ${r.piso.name}: a forma evoluída não sai mais barata que a anterior.`));
    // Composição com uma linha por parte, no mesmo formato do bloco Simular: rótulo à esquerda e valor à direita.
    const box=el('fieldset','compose'),parts=el('ul','parts'),li=el('li'),value=el('div','partvalue');
    value.append(el('b',null,gems(r.base)));li.append(el('span','partname','Pokémon'),value);parts.append(li);
