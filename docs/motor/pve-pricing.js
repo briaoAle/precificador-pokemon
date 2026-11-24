@@ -184,7 +184,7 @@ function dropLevel(central,rows,speciesId){
  const total=[...count.values()].reduce((a,b)=>a+b,0),[level,n]=[...count].sort((a,b)=>b[1]-a[1])[0]||[];
  return n>=5&&n/total>=.3?level:chainCap(central,id);
 }
-function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.now(),bias,correcao}){
+function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.now(),bias,correcao,minLevel}){
  const speciesId=speciesLookup(central)(null,sheet?.nome);
  if(speciesId==null)throw Error(`Espécie não reconhecida: ${String(sheet?.nome||'').slice(0,60)}.`);
  if(!STATS.every(k=>Number.isInteger(sheet.ivs?.[k])))throw Error('A ficha precisa dos 6 IVs para calcular o PvE.');
@@ -195,7 +195,12 @@ function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.n
  const known=parts.reduce((s,p)=>s+(p.total||0),0),typesOf=id=>central.species.get(id)?.t||[],megaUnit=(shiny,at)=>quote(shiny?MEGA_SHINY:MEGA,at)??0;
  const nota=Number(sheet.nota),fit=marketFit(rows.filter(r=>r.shiny===target.shiny)),b=correcao?biasFor(correcao,target.shiny):bias;
  const opts={addons:known,typesOf,megaUnit,fit,...(Number.isFinite(b)?{bias:b}:{})};
- const e=withFloor(neighbors({...target,at:now,nota:Number.isFinite(nota)&&sheet.nota!=null?nota:null},rows,opts),earlierForms(central,p,target),t=>neighbors({...t,at:now},rows,opts));
+ const notaT=Number.isFinite(nota)&&sheet.nota!=null?nota:null,priceAt=(q,t)=>withFloor(neighbors({...t,at:now,nota:notaT},rows,opts),earlierForms(central,q,t),f=>neighbors({...f,at:now},rows,opts));
+ let e=priceAt(p,target);
+ if(e&&minLevel>0&&minLevel<target.level)for(const level of [minLevel,...LEVEL_STEPS.filter(l=>l>minLevel&&l<target.level)]){
+  const q={...p,level},t=describe(central,q),a=t&&priceAt(q,t);
+  if(a&&a.median>e.median)e={...e,low:a.low,median:a.median,high:a.high,rawMedian:a.rawMedian,base:a.base,piso:null,pisoNivel:level};
+ }
  const species=central.species.get(speciesId);
  const result={name:species.n,speciesId,types:species.t||[],family:target.familyName,familyId:target.family,shiny:target.shiny,pve:target.pve,level:target.level,refined,parts,missing:parts.filter(p=>p.total==null).map(p=>p.label)};
  if(!e)return {...result,available:false};
@@ -204,7 +209,7 @@ function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.n
  const levels=[...new Set([...LEVEL_STEPS.filter(l=>l>from&&l<=top),from,target.level])].sort((a,b)=>a-b),here=fit.level(Math.log(target.level));
  const byLevel=levels.map(level=>{const k=Math.exp(fit.level(Math.log(level))-here),p=x=>Math.max(MIN_PRICE,Math.round(x*k+known));return {level,low:p(e.low-known),median:p(e.base),high:p(e.high-known),current:level===target.level,drop:level===drop};});
  return {...result,available:true,low:e.low,median:e.median,high:e.high,byLevel,dropLevel:drop,base:Math.round(e.base),weight:e.weight,familyCount:e.familyCount,marketCount:e.marketCount,uncertain:e.uncertain,confidence:e.confidence,correcao:Number.isFinite(b)?b:null,comps,
-  piso:e.piso!=null?{speciesId:e.piso,name:central.species.get(e.piso)?.n||''}:null};
+  piso:e.piso!=null?{speciesId:e.piso,name:central.species.get(e.piso)?.n||''}:null,pisoNivel:e.pisoNivel??null};
 }
 root.PokeIdlePvePricing={earlierForms,withFloor,describe,biasFor,prepare,estimate,neighbors,marketFit,confidence,priceSheet,pav,at,itemQuotes,day,MEGA,MEGA_SHINY,MODEL,NEIGHBORS,CONFIDENCE};
 })(window);

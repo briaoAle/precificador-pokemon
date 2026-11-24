@@ -3,6 +3,8 @@
 (function(){
  'use strict';
  const NOVIDADES=[
+  {data:'24/11/2026',itens:[
+   'No Simular, a mesma ficha num nível maior não sai mais barata que num nível menor: quando sairia, o Preço justo fica igual ao do nível menor, e a página avisa. Antes, cerca de 1 em cada 100 fichas saía mais barata ao subir de nível, quase sempre com poucas vendas parecidas.']},
   {data:'20/11/2026',itens:[
    'Uma forma evoluída não sai mais barata que a anterior com a mesma ficha: quando sairia, o Preço justo fica igual ao da forma anterior, e a página avisa. Antes, cerca de 9% dos passos de evolução comuns e 4% dos shiny saíam mais baratos, como Pupitar mais caro que Tyranitar. No teste com as vendas passadas, o acerto ficou igual e a Confiança melhorou um pouco. A Mega fica de fora: ela continua com o preço dela, com as pedras somadas à parte.']},
   {data:'19/11/2026',itens:[

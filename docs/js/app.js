@@ -309,6 +309,8 @@
    if(block.childNodes.length)row.append(block);nodes.push(row);
    // Piso por forma (20/11/2026): a forma evoluída não sai mais barata que a anterior com a mesma ficha.
    if(r.piso)nodes.push(el('p','small',`Preço igual ao desta ficha como ${r.piso.name}: a forma evoluída não sai mais barata que a anterior.`));
+   // Piso por nível (24/11/2026): no Simular, um nível maior não sai mais barato que um nível menor da mesma ficha.
+   if(r.pisoNivel)nodes.push(el('p','small',`Preço igual ao desta ficha no Nv ${gems(r.pisoNivel)}: um nível maior não sai mais barato.`));
    // Composição com uma linha por parte, no mesmo formato do bloco Simular: rótulo à esquerda e valor à direita.
    const box=el('fieldset','compose'),parts=el('ul','parts'),li=el('li'),value=el('div','partvalue');
    value.append(el('b',null,gems(r.base)));li.append(el('span','partname','Pokémon'),value);parts.append(li);
@@ -405,7 +407,7 @@
   if(!lastSheet)return false;
   const sim=simulated(lastSheet),sheet=sim||lastSheet,simFrom=sim?{name:speciesOf(lastSheet).n,id:speciesOf(lastSheet).id,level:lastSheet.level}:null;
   // O tipo do Z-Move não muda o preço (o fragmento é o mesmo): vai um tipo qualquer e a linha mostra só "Z-Move".
-  try{const r=P.priceSheet(central,{...sheet,nota:notaOf(sheet),tmElemental:$('zmove').checked?'NORMAL':null,tmAoe:$('aoe').checked},{rows,itemPrices:precos.itens,currentItems:loadItems(),now:Date.parse(precos.geradoEm),bias:precos.correcao?.bias,correcao:precos.correcao});
+  try{const r=P.priceSheet(central,{...sheet,nota:notaOf(sheet),tmElemental:$('zmove').checked?'NORMAL':null,tmAoe:$('aoe').checked},{rows,itemPrices:precos.itens,currentItems:loadItems(),now:Date.parse(precos.geradoEm),bias:precos.correcao?.bias,correcao:precos.correcao,minLevel:sim&&sim.level>lastSheet.level?lastSheet.level:undefined});
    render({...r,simFrom,nota:sheet.nota,notaPreco:notaOf(sheet),potencia:sheet.potencia,quality:sheet.quality,ivSum:Object.values(sheet.ivs||{}).reduce((s,v)=>s+v,0),parts:r.parts.map(p=>/^Z-Move/.test(p.label)?{...p,label:'Z-Move'}:p),missing:(r.missing||[]).map(l=>/^Z-Move/.test(l)?'Z-Move':l)});}
   catch(e){error(e.message);return false;}
   return true;
