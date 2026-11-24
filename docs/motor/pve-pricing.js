@@ -88,7 +88,7 @@ function estimate(target,rows,{k=5,variant='factor',addons=0}={}){
   sources:{family:family.length,market:market.length,levelNear:near.length>=MIN_MARKET},
   uncertain:{family:family.filter(r=>r.uncertain).length,market:market.filter(r=>r.uncertain).length}};
 }
-const NEIGHBORS={layers:[1,.2,.05,.01],levelSigma:.8,megaWeight:.2,pveSigma:.15,notaSigma:.3,halfLifeDays:14,minWeight:1e-5,bias:Math.log(1.09),refinedWeight:1,uncertainPlain:1};
+const NEIGHBORS={layers:[1,.2,.05,.01],levelSigma:.8,levelSigmaShiny:1.6,megaWeight:.2,pveSigma:.15,notaSigma:.3,halfLifeDays:14,minWeight:1e-5,bias:Math.log(1.09),refinedWeight:1,uncertainPlain:1};
 const CONFIDENCE={minVendas:5};
 function marketLine(points){
  const n=points.length,m=k=>points.reduce((s,p)=>s+p[k],0)/n,mx=m('x'),ml=m('l'),my=m('y');let xx=0,ll=0,xl=0,xy=0,ly=0;
@@ -125,9 +125,9 @@ function neighbors(target,rows,{addons=0,typesOf=()=>[],megaUnit=()=>0,cfg=NEIGH
  if(market.length<3)return null;
  const fit=given||marketFit(same),mine=typesOf(target.family),tNota=notaOf(target),notaW=r=>{const a=notaOf(r);return cfg.notaSigma&&Number.isFinite(a)&&Number.isFinite(tNota)?Math.exp(-(((a-tNota)/cfg.notaSigma)**2)/2):1;};
  const layerOf=r=>{if(r.family===target.family)return 0;const t=typesOf(r.family);if(mine.length&&t.length===mine.length&&mine.every(x=>t.includes(x)))return 1;return mine.some(x=>t.includes(x))?2:3;};
- const at=target.at??Date.now(),pts=[];
+ const at=target.at??Date.now(),pts=[],levelSigma=target.shiny&&cfg.levelSigmaShiny?cfg.levelSigmaShiny:cfg.levelSigma;
  for(const r of same){
-  const layer=layerOf(r),w=(r.refined?cfg.refinedWeight??1:1)*(cfg.megaWeight&&!!r.mega!==!!target.mega?cfg.megaWeight:1)*cfg.layers[layer]*Math.exp(-((Math.log(r.level/target.level)/cfg.levelSigma)**2)/2)*Math.exp(-((Math.log(r.pve/target.pve)/cfg.pveSigma)**2)/2)*notaW(r)*.5**((at-r.at)/(cfg.halfLifeDays*DAY_MS));
+  const layer=layerOf(r),w=(r.refined?cfg.refinedWeight??1:1)*(cfg.megaWeight&&!!r.mega!==!!target.mega?cfg.megaWeight:1)*cfg.layers[layer]*Math.exp(-((Math.log(r.level/target.level)/levelSigma)**2)/2)*Math.exp(-((Math.log(r.pve/target.pve)/cfg.pveSigma)**2)/2)*notaW(r)*.5**((at-r.at)/(cfg.halfLifeDays*DAY_MS));
   if(!(w>=cfg.minWeight))continue;const expected=fit(Math.log(r.pve),Math.log(r.level),notaOf(r),r.ivAtaque),uncertain=r.uncertain===true;
   if(!uncertain){pts.push({v:r.logBase-expected,w,layer,uncertain,r});continue;}
   const plain=Math.max(1,r.price-(r.mega?PER_ADDON*megaUnit(r.shiny,r.at):0));
@@ -184,6 +184,12 @@ function dropLevel(central,rows,speciesId){
  const total=[...count.values()].reduce((a,b)=>a+b,0),[level,n]=[...count].sort((a,b)=>b[1]-a[1])[0]||[];
  return n>=5&&n/total>=.3?level:chainCap(central,id);
 }
+const FITS=new WeakMap();
+function fitOf(rows,shiny){
+ let c=FITS.get(rows);if(!c||c.n!==rows.length){c={n:rows.length,by:new Map()};FITS.set(rows,c);}
+ if(!c.by.has(shiny))c.by.set(shiny,marketFit(rows.filter(r=>r.shiny===shiny)));
+ return c.by.get(shiny);
+}
 function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.now(),bias,correcao,minLevel}){
  const speciesId=speciesLookup(central)(null,sheet?.nome);
  if(speciesId==null)throw Error(`Espécie não reconhecida: ${String(sheet?.nome||'').slice(0,60)}.`);
@@ -193,7 +199,7 @@ function priceSheet(central,sheet,{rows,itemPrices=[],currentItems={},now=Date.n
  if(!target)throw Error('Não foi possível calcular o PvE desta ficha.');
  const quote=itemQuotes(itemPrices),parts=target.addons.map(a=>{const current=Number(currentItems?.[a.id]),unit=current>0?current:quote(a.id,now);return {id:a.id,label:a.label,quantity:a.quantity,unit:unit??null,quote:quote(a.id,now)??null,total:unit!=null?Math.round(unit*a.quantity):null};});
  const known=parts.reduce((s,p)=>s+(p.total||0),0),typesOf=id=>central.species.get(id)?.t||[],megaUnit=(shiny,at)=>quote(shiny?MEGA_SHINY:MEGA,at)??0;
- const nota=Number(sheet.nota),fit=marketFit(rows.filter(r=>r.shiny===target.shiny)),b=correcao?biasFor(correcao,target.shiny):bias;
+ const nota=Number(sheet.nota),fit=fitOf(rows,target.shiny),b=correcao?biasFor(correcao,target.shiny):bias;
  const opts={addons:known,typesOf,megaUnit,fit,...(Number.isFinite(b)?{bias:b}:{})};
  const notaT=Number.isFinite(nota)&&sheet.nota!=null?nota:null,priceAt=(q,t)=>withFloor(neighbors({...t,at:now,nota:notaT},rows,opts),earlierForms(central,q,t),f=>neighbors({...f,at:now},rows,opts));
  let e=priceAt(p,target);
