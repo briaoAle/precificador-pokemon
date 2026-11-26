@@ -291,6 +291,7 @@
   box.append(cell('median','Preço justo',' main'),track,ends);return box;
  }
  function render(r){
+  try{window.PokeIdleMercado?.cadeia(r);}catch(e){}
   const nodes=[],extras=[],who=el('div','who'),title=el('div');
   title.append(el('h3',null,`${r.name}${r.shiny?' shiny':''} · Nv ${gems(r.level)}`),types(r.types),sheetStats(r),tags(r));who.append(sprite(r.speciesId,r.shiny,false),title);nodes.push(who);
   if(r.simFrom)nodes.push(el('p','small simnote',`Simulação a partir da ficha de ${r.simFrom.name} Nv ${gems(r.simFrom.level)}.${r.speciesId!==r.simFrom.id&&megaBaseOf(r.speciesId)!==r.simFrom.id?' Não inclui o custo de evoluir.':''}`));
@@ -438,6 +439,7 @@
    precos=await response.json();rows=PokeIdleCentral.linhas(precos);central=PokeIdleCentral.create(window);
    $('status').textContent=`Vendas lidas em ${when(Date.parse(precos.geradoEm))} · ${gems(rows.length)} vendas dos últimos ${precos.janelaDias} dias.`;
    $('go').disabled=false;
+   try{window.PokeIdleMercado?.render($('mercado'),PokeIdleCentral.vendas(precos),Date.parse(precos.geradoEm));}catch(e){}
    openLink();addEventListener('hashchange',openLink);
   }catch(e){$('status').textContent='Não foi possível carregar as vendas. Recarregue a página.';$('status').classList.add('warn');}
  }

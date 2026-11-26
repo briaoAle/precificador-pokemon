@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' https://raw.githubusercontent.com; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="Tendências do mercado do PokeIdle: Gemas por venda e quantidade de vendas por dia em cada cadeia evolutiva.">
+<title>Mercado · Precificador de Pokémon</title>
+<link rel="stylesheet" href="app.css?v=a9a69d4c">
+</head>
+<body>
+<header class="top">
+ <div class="toptext">
+  <h1>Mercado</h1>
+  <p class="muted">Gemas por venda e vendas por dia em cada cadeia evolutiva, nos últimos 30 dias, de 3 em 3 dias.</p>
+ </div>
+ <a class="newsbtn support" href="index.html"><span>Precificador</span></a>
+</header>
+<main class="trendlayout">
+ <section class="card">
+  <div class="trendtools">
+   <div class="seg" role="group" aria-label="Grupo">
+    <button type="button" id="gshiny" aria-pressed="true">Shiny</button>
+    <button type="button" id="gnormal" aria-pressed="false">Não shiny</button>
+   </div>
+  </div>
+  <label for="busca">Buscar cadeia</label>
+  <input type="search" id="busca" autocomplete="off" spellcheck="false" placeholder="Nome de qualquer forma da cadeia">
+  <p id="status" class="muted small" role="status">Carregando vendas…</p>
+  <div id="lista" class="trendlist"></div>
+ </section>
+ <section class="card" id="painel" aria-live="polite">
+  <h2>Escolha uma cadeia</h2>
+  <p class="muted">Clique numa cadeia da lista para ver o gráfico dela.</p>
+ </section>
+</main>
+<footer class="foot muted small">
+ <p>Projeto independente, sem relação com os criadores do PokeIdle. Os números vêm de vendas públicas do mercado do jogo. Sprites da <a href="https://github.com/PokeAPI/sprites" rel="noreferrer">PokeAPI</a>.</p>
+</footer>
+<script src="catalogo/especies.js?v=df66b799" defer></script>
+<script src="js/central.js?v=5e19d35b" defer></script>
+<script src="js/tendencias.js?v=49b70b9d" defer></script>
+</body>
+</html>

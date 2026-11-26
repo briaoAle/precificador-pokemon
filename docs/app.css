@@ -168,3 +168,42 @@ input.unit::-webkit-inner-spin-button,input.unit::-webkit-outer-spin-button{appe
 input.unit:hover,input.unit:focus{border-color:var(--primary-line)}
 /* Apoio, ao lado de Novidades, no mesmo visual do botão (o link empurra os dois para a direita). */
 .newsbtn.support{margin-left:auto;background:var(--raised);border:1px solid var(--button-line);border-radius:6px;font-weight:600;text-decoration:none;white-space:nowrap}.newsbtn.support:hover{border-color:var(--focus)}
+
+/* Mercado na página principal e página mercado.html (26/11/2026) */
+.mktsums{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0 4px}
+.mktsum{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;background:var(--raised);border:1px solid var(--line-soft);border-radius:8px;padding:10px 14px}
+.mktsum b{font-size:1.25em;font-variant-numeric:tabular-nums}
+.mktlabel{color:var(--label);margin-right:4px}
+.mktnum{display:inline-flex;align-items:baseline;gap:4px}
+.mktsep{color:var(--faint)}
+.mktvar{font-variant-numeric:tabular-nums;margin-left:4px}.mktvar.up{color:var(--ok)}.mktvar.down{color:var(--bad)}.mktvar.flat{color:var(--muted)}
+.mktlink{margin-left:8px}.mktfoot{margin:12px 0 0}
+table.mkt th{text-align:left;color:var(--muted);font-weight:500;padding:4px 6px;border-bottom:1px solid var(--line)}
+table.mkt td{padding:4px 6px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+table.mkt .num{text-align:right}
+.mktwho{display:flex;align-items:center;gap:8px}
+table.mkt .sprite.small,table.mkt .nosprite.small,.trendtitle .sprite.small{width:28px;height:28px}
+.trendlayout{display:grid;grid-template-columns:minmax(280px,380px) 1fr;gap:20px;padding:20px;align-items:start}
+@media (max-width:900px){.trendlayout{grid-template-columns:1fr}}
+.trendtools{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:12px}
+.seg{display:inline-flex;border:1px solid var(--button-line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:var(--raised);color:var(--muted);padding:6px 14px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--primary);color:var(--text)}
+.trendlist{max-height:70vh;overflow:auto;margin-top:8px}
+button.linkrow{all:unset;cursor:pointer;display:block;width:100%}
+button.linkrow:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+tr.pick:hover td{background:var(--hover)}tr.pick.on td{background:var(--raised)}
+.trendtitle h2{margin:0}.trendsel{display:flex;align-items:center;gap:8px;margin:10px 0}
+.trendchart{width:100%;height:auto;margin-top:8px}
+.trendchart .grid{stroke:var(--line-soft);stroke-width:1}
+.trendchart .axis{fill:var(--muted);font-size:12px}.trendchart .axis.left{fill:var(--mine)}.trendchart .axis.right{fill:var(--ok)}
+.trendchart .serie{fill:none;stroke-width:2}.trendchart .serie.media{stroke:var(--mine)}.trendchart .serie.qtd{stroke:var(--ok);stroke-dasharray:5 4}
+.trendchart .ponto.media{fill:var(--mine)}.trendchart .ponto.qtd{fill:var(--ok)}
+.swatch.media{background:var(--mine)}.swatch.qtd{background:var(--ok)}
+.check[hidden]{display:none}
+.trendtools+label,#busca{display:block}#busca{width:100%;padding:8px;margin-top:4px;background:var(--raised);color:var(--text);border:1px solid var(--box);border-radius:6px;font:inherit}
+#busca:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+table.mkt th{white-space:nowrap}
+.newsbtn.mktbtn{margin-left:auto;background:var(--raised);border:1px solid var(--button-line);border-radius:6px;font-weight:600;text-decoration:none;white-space:nowrap}.newsbtn.mktbtn:hover{border-color:var(--focus);color:var(--text)}
+.newsbtn.mktbtn+.newsbtn.support{margin-left:0}
+@media (max-width:700px){.top{flex-wrap:wrap}.newsbtn.mktbtn{margin-left:0}}

@@ -3,6 +3,9 @@
 (function(){
  'use strict';
  const NOVIDADES=[
+  {data:'26/11/2026',itens:[
+   'Nova página Tendências do mercado, no botão do topo: para cada cadeia evolutiva, shiny ou não shiny, um gráfico com as Gemas por venda e as vendas por dia dos últimos 30 dias, de 3 em 3 dias. Dá para ver a cadeia toda ou uma forma só, e buscar a cadeia pelo nome de qualquer forma.',
+   'Embaixo do preço, o quadro Mercado mostra quantas Gemas o mercado shiny e o não shiny venderam por dia na última semana e as Gemas por venda (Gemas vendidas ÷ quantidade de vendas), com a variação contra a semana anterior. Depois de precificar, aparece também a cadeia do Pokémon colado.']},
   {data:'24/11/2026',itens:[
    'No Simular, a mesma ficha num nível maior não sai mais barata que num nível menor: quando sairia, o Preço justo fica igual ao do nível menor, e a página avisa. Antes, cerca de 1 em cada 100 fichas saía mais barata ao subir de nível, quase sempre com poucas vendas parecidas.']},
   {data:'20/11/2026',itens:[
